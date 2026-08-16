@@ -67,6 +67,23 @@ class NetworkParams:
     g_pv: float = 1.0            # divisive gain weight, set per age from PV fold-change
     g_sst: float = 1.0           # subtractive weight, set per age from SST fold-change
 
+    # NOTE on what is deliberately NOT modeled here: s_pv/s_sst are driven by
+    # the local excitatory pool (state.E) with a FIXED, age-invariant
+    # coupling in network.py -- only the OUTPUT side (g_pv, g_sst above)
+    # scales with age. You've told us (electrical-stimulation recordings)
+    # that with age: (a) feedforward EPSC onto PV cells declines, and (b)
+    # PV cells' intrinsic excitability increases. These two changes act on
+    # the INPUT side of the PV pathway and pull in opposite directions on
+    # net PV recruitment (less synaptic drive, but easier to fire once
+    # driven) -- plausibly partially offsetting, which is what motivates
+    # leaving that coupling age-invariant rather than a claim that neither
+    # effect exists. This is a considered simplification, not an oversight:
+    # kept this way deliberately (per your explicit call) rather than
+    # building a combined EPSC+excitability input-recruitment model, since
+    # we don't have matched quantitative magnitudes for both to know
+    # whether/how much they actually cancel, and no equivalent SST-cell
+    # excitability data. Revisit if those numbers become available.
+
     # --- activation function F(x) = 1 / (1 + exp(-(x-theta)/k)) ---
     theta: float = 0.0           # ASSUMED: activation threshold/offset
     k_sig: float = 0.5           # ASSUMED: activation slope

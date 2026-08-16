@@ -74,6 +74,43 @@ asymmetric (SST->PV only) per Pfeffer et al. 2013, not bidirectional. Your
 original Phase 3 spec already anticipated this by explicitly requiring "no
 interneuron-interneuron coupling" for the VGAT summation check.
 
+## Additional experimental findings you shared, and how they were handled
+
+Beyond the ChR2-isolated output-synapse data used to set `g_pv`/`g_sst`,
+you described three more findings from electrical-stimulation slice
+recordings, none of which are yet built into the model, along with the
+reasoning for that choice:
+
+- **Feedforward EPSC onto pyramidal cells declines with age**, and
+  **feedforward IPSC onto pyramidal cells (compound, disynaptic) also
+  declines with age.** The compound IPSC result is exactly the kind of
+  composite/ambiguous signal your original framing (Phase 3's motivation)
+  was already wary of: taken alone it would suggest "inhibition weakens
+  with age," which is not what the isolated PV/SST ChR2 data show (PV
+  output strengthens, SST output weakens). It's plausibly explained by
+  reduced excitatory drive reaching the interneurons in the first place,
+  which is a different quantity than output synapse strength and does not
+  contaminate the ChR2 measurements (ChR2 depolarizes the interneuron
+  directly, bypassing its synaptic input entirely).
+- **Feedforward EPSC onto PV cells specifically declines with age**
+  (recorded directly from PV cells, so cell-type-specific, not a
+  composite signal). This says PV cells receive less excitatory synaptic
+  drive with age.
+- **PV cells' intrinsic excitability increases with age.** This pulls in
+  the opposite direction from the EPSC finding above: less synaptic drive,
+  but each unit of drive is more likely to make the cell fire. Net effect
+  on PV recruitment is therefore ambiguous without matched quantitative
+  magnitudes for both -- they could partially or fully offset.
+
+**Decision (explicit, by request)**: keep the model simple for now.
+`network.py`'s `s_pv`/`s_sst` are driven by the local excitatory pool with
+a fixed, age-invariant coupling; only the ChR2-derived output-side
+`g_pv`/`g_sst` scale with age. This is treated as a considered
+simplification motivated by the plausible EPSC-vs-excitability offset
+above, not as evidence those two effects don't matter -- revisit if
+matched quantitative magnitudes for both become available (and/or an
+SST-cell excitability equivalent, which hasn't been reported).
+
 ## What is NOT literature-validated -- this project's own hypothesis
 
 The specific causal chain this sufficiency test is built around --
