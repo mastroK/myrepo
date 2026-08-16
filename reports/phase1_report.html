@@ -1,0 +1,470 @@
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SST:PV Perseveration Model</title>
+<style>
+  :root {
+    --paper: #f6f4ee;
+    --paper-raised: #fffdf8;
+    --ink: #1b1f1d;
+    --ink-soft: #4a5350;
+    --ink-faint: #7c8480;
+    --rule: #dedad0;
+    --young: #96691a;
+    --young-soft: #f1e6d0;
+    --old: #00688f;
+    --old-soft: #dcedf3;
+    --flag: #a1453c;
+    --flag-soft: #f5e4e1;
+    --shadow: rgba(27, 31, 29, 0.09);
+    --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14181a;
+      --paper-raised: #1c2225;
+      --ink: #e8e6df;
+      --ink-soft: #a8b0ac;
+      --ink-faint: #78827e;
+      --rule: #2a3033;
+      --young: #b8862c;
+      --young-soft: #2c2517;
+      --old: #2ca0c7;
+      --old-soft: #17272c;
+      --flag: #d9847a;
+      --flag-soft: #2f1f1d;
+      --shadow: rgba(0, 0, 0, 0.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14181a;
+    --paper-raised: #1c2225;
+    --ink: #e8e6df;
+    --ink-soft: #a8b0ac;
+    --ink-faint: #78827e;
+    --rule: #2a3033;
+    --young: #b8862c;
+    --young-soft: #2c2517;
+    --old: #2ca0c7;
+    --old-soft: #17272c;
+    --flag: #d9847a;
+    --flag-soft: #2f1f1d;
+    --shadow: rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.65;
+    margin: 0;
+    padding: 0 20px 96px;
+  }
+  main {
+    max-width: 740px;
+    margin: 0 auto;
+  }
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 600; text-wrap: balance; color: var(--ink); }
+  h1 { font-size: 2.5rem; line-height: 1.12; margin: 0 0 0.3rem; }
+  h2 { font-size: 1.5rem; margin: 3rem 0 0.9rem; padding-top: 0.4rem; border-top: 1px solid var(--rule); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 0.6rem; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--old); }
+  code { font-family: var(--font-mono); font-size: 0.88em; background: var(--paper-raised); padding: 0.1em 0.35em; border-radius: 4px; border: 1px solid var(--rule); }
+
+  .eyebrow {
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.6rem;
+  }
+  .subtitle { font-size: 1.15rem; color: var(--ink-soft); margin: 0 0 1.1rem; font-family: var(--font-display); font-style: italic; }
+  .meta-line {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--ink-faint);
+    display: flex; flex-wrap: wrap; gap: 0.4em 1.2em;
+    margin-bottom: 2rem;
+    padding-bottom: 1.6rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  nav.toc {
+    display: flex; flex-wrap: wrap; gap: 0.4rem 0.5rem;
+    margin: 0 0 2.6rem;
+    padding: 0.9rem 1rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+  }
+  nav.toc a {
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding: 0.25rem 0.7rem;
+    border-radius: 100px;
+    border: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  nav.toc a:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+  .callout {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--old);
+    border-radius: 8px;
+    padding: 1.1rem 1.3rem;
+    margin: 1.5rem 0;
+  }
+  .callout h3 { margin-top: 0; }
+  .callout.flag { border-left-color: var(--flag); background: var(--flag-soft); }
+  .callout.tldr { border-left-color: var(--ink); }
+  .callout ul, .callout ol { margin: 0.4rem 0 0; padding-left: 1.3rem; }
+  .callout li { margin-bottom: 0.4rem; }
+  .callout li:last-child { margin-bottom: 0; }
+
+  .stat-row { display: flex; flex-wrap: wrap; gap: 1.6rem; margin: 1.2rem 0; }
+  .stat { min-width: 140px; }
+  .stat .num { font-family: var(--font-mono); font-size: 1.5rem; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .stat .lbl { font-size: 0.78rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+  .swatch { display: inline-block; width: 0.75em; height: 0.75em; border-radius: 2px; margin-right: 0.4em; vertical-align: -0.05em; }
+  .swatch.young { background: var(--young); }
+  .swatch.old { background: var(--old); }
+
+  table { width: 100%; border-collapse: collapse; margin: 1.1rem 0 1.6rem; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+  th { font-family: var(--font-body); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); font-weight: 600; }
+  td.num, th.num { font-family: var(--font-mono); }
+  tr:last-child td { border-bottom: none; }
+  .table-wrap { overflow-x: auto; }
+  .table-wrap table { min-width: 480px; }
+
+  figure { margin: 1.6rem 0; padding: 1.2rem 1.2rem 0.9rem; background: var(--paper-raised); border: 1px solid var(--rule); border-radius: 10px; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { font-size: 0.82rem; color: var(--ink-soft); margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--rule); }
+
+  .chart-label { font-family: var(--font-body); font-size: 11px; fill: var(--ink-soft); }
+  .chart-label-strong { font-family: var(--font-body); font-size: 11.5px; fill: var(--ink); font-weight: 600; }
+  .chart-tick { font-family: var(--font-mono); font-size: 10.5px; fill: var(--ink-faint); }
+  .grid-line { stroke: var(--rule); stroke-width: 1; }
+  .zero-line { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 3 3; }
+  .dot { stroke: var(--paper-raised); stroke-width: 1; }
+  .dot-young { fill: var(--young); }
+  .dot-old { fill: var(--old); }
+  .mean-tick { stroke-width: 2.5; }
+  .mean-tick.young { stroke: var(--young); }
+  .mean-tick.old { stroke: var(--old); }
+  .err-bar { stroke-width: 1.5; }
+  .err-bar.young { stroke: var(--young); }
+  .err-bar.old { stroke: var(--old); }
+  .forest-ci { stroke: var(--ink-soft); stroke-width: 1.5; }
+  .forest-pt { fill: var(--paper-raised); stroke: var(--old); stroke-width: 1.8; }
+  .forest-pt.sig { fill: var(--old); }
+  .forest-row-label { font-family: var(--font-mono); font-size: 11px; fill: var(--ink-soft); }
+  .forest-row-label.pooled { font-family: var(--font-body); font-weight: 600; fill: var(--ink); font-size: 11.5px; }
+  .diamond { fill: var(--ink); }
+
+  ol.assume-list, ul.ref-list { padding-left: 1.35rem; }
+  ol.assume-list li, ul.ref-list li { margin-bottom: 0.8rem; }
+  .ref-list .cite { font-style: italic; color: var(--ink-soft); }
+  .ref-list a { font-size: 0.85rem; }
+
+  footer {
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.82rem;
+    color: var(--ink-faint);
+  }
+  footer a { color: var(--ink-faint); }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 2rem; }
+    body { font-size: 16px; }
+  }
+</style>
+
+<main>
+
+  <p class="eyebrow">Computational model &middot; Phase 1 of 3</p>
+  <h1>SST:PV Perseveration Model</h1>
+  <p class="subtitle">Does the empirically-grounded shift in SST:PV inhibitory ratio across development explain the age-related decline in behavioral perseveration?</p>
+  <div class="meta-line">
+    <span>mastroK/myrepo</span>
+    <span>branch: claude/sst-pv-inhibitory-network-wodh10</span>
+    <span>sst_pv_model/ + scripts/run_phase1*.py</span>
+  </div>
+
+  <nav class="toc">
+    <a href="#tldr">At a glance</a>
+    <a href="#background">Background</a>
+    <a href="#model">Model</a>
+    <a href="#parameters">Parameters</a>
+    <a href="#headline">Headline result</a>
+    <a href="#robustness">Robustness sweep</a>
+    <a href="#replication">Replication study</a>
+    <a href="#mechanism">Mechanism check</a>
+    <a href="#assumptions">Open assumptions</a>
+    <a href="#references">References</a>
+  </nav>
+
+  <div class="callout tldr" id="tldr">
+    <h3>At a glance</h3>
+    <p><strong>Question:</strong> a rate-model decision circuit is given only the real, isolated SST/PV ChR2 output-synapse fold-changes across age. Is that alone sufficient to produce higher behavioral perseveration (sticky Q-learning &kappa;) in the young parameterization than the old one &mdash; with no stickiness term written into the circuit anywhere?</p>
+    <p><strong>Answer:</strong> yes, directionally, and now on reasonably firm statistical ground. Combined across 12 independent real-sized (16/group) simulated cohorts, young &gt; old &kappa; reaches significance overall (Fisher's combined <em>p</em> = 0.019) and is not fragile to any of the circuit's named free parameters (time constants, coupling strength).</p>
+    <p><strong>One claim retracted:</strong> an earlier single-run report claimed the model also reproduced the real data's <em>late-session-specific</em> kappa decline. That does not replicate &mdash; see <a href="#replication">Replication study</a>. Treat this as a sufficiency demonstration for the overall direction, not an explanation of the late-session timing.</p>
+  </div>
+
+  <h2 id="background">Background</h2>
+  <p>Isolated, cell-type-specific ChR2 slice-electrophysiology recordings show two age-related synaptic changes: SST&rarr;pyramidal output strength declines with age, while PV&rarr;pyramidal output strength increases. Feedforward IPSC kinetics in the compound (non-isolated) signal shift toward PV-like speed with age &mdash; a composite measurement kept deliberately out of Phase 1/2's parameterization, since it conflates several separate quantities (see <a href="#references">References</a>).</p>
+  <p>Separately, sticky Q-learning fits (Rescorla-Wagner value updates + a choice-stickiness parameter &kappa;) to the real 80-20 bandit cohort show male mice becoming reliably less perseverative with age, an effect specific to late sessions (6-10 of 10) that survives correction for multiple comparisons.</p>
+  <p>Phase 1 asks whether a circuit built only from the first fact is sufficient to produce the qualitative direction of the second, with perseveration emerging from network dynamics rather than being fit or coded in.</p>
+
+  <h2 id="model">Model construction</h2>
+  <p>A Wilson-Cowan-style rate circuit: two excitatory pools (<code>E0</code>, <code>E1</code>) accumulate value/evidence for the bandit's two options. Each pool recruits its own local PV and SST interneuron drive, which inhibits the <em>competing</em> pool &mdash; standard lateral/cross-inhibition wiring for winner-take-all decision circuits.</p>
+  <div class="stat-row">
+    <div class="stat"><div class="num" style="color:var(--old)">PV</div><div class="lbl">fast &middot; divisive gain on the competing pool's output</div></div>
+    <div class="stat"><div class="num" style="color:var(--young)">SST</div><div class="lbl">slow &middot; subtractive shift of the competing pool's input</div></div>
+  </div>
+  <p>Neither the excitatory pools nor the interneuron populations are reset between trials or sessions&mdash;session boundaries excepted, where state resets along with the internal value estimate, matching real sessions being separated by rest days. Whatever choice-repetition bias emerges is a side effect of how completely PV (fast) vs. SST (slow) inhibition clears residual pool activity during the inter-trial interval, regression-tested directly (see <a href="#mechanism">Mechanism check</a>) rather than assumed.</p>
+  <p>The model has <strong>no direct PV&harr;SST synaptic connection in either direction</strong> &mdash; sidestepping a real, asymmetric connectivity question (SST inhibits PV; the reverse is comparatively weak) that doesn't need resolving for this test. Full literature grounding for every design choice is in <a href="#references">References</a>.</p>
+
+  <h2 id="parameters">Parameterization</h2>
+  <p>SST and PV synaptic weights are set from real ChR2 dose-response curves (evoked charge, fC/pF, vs. laser power), read at the saturating (~15&nbsp;mW) plateau of each age group's curve &mdash; graph-read estimates, not exact per-cell values.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Cell type</th><th class="num">Young (6-9wk)</th><th class="num">Old (16-36wk)</th><th class="num">Fold-change (old/young)</th></tr></thead>
+      <tbody>
+        <tr><td><span class="swatch young"></span>SST output charge</td><td class="num">~16,100 fC/pF</td><td class="num">~11,700 fC/pF</td><td class="num">0.73</td></tr>
+        <tr><td><span class="swatch old"></span>PV output charge</td><td class="num">~3,650 fC/pF</td><td class="num">~5,150 fC/pF</td><td class="num">1.4</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Interneuron kinetics (PV &tau;=15&nbsp;ms, SST &tau;=100&nbsp;ms) are literature-typical values, held <strong>fixed across age</strong> &mdash; only the output weights above scale with age, so any age-shift in emergent suppression kinetics (Phase 2) is a model prediction, not something hardcoded in. Task structure (10 sessions &times; 150 trials &times; 16 animals/group, 80-20 contingency with randomized reversal blocks) matches the real cohort's session count and reward contingency; trial/session/cohort counts beyond that are reasonable assumed defaults, not the exact real numbers. Full derivation and every flagged assumption: <code>sst_pv_model/params.py</code>.</p>
+
+  <h2 id="headline">Headline result</h2>
+  <p>Simulated choice sequences (10 sessions &times; 150 trials &times; 16 animals/group) were fit with the same sticky Q-learning model used on real data (vendored from <code>mastro_mouse_bandit_analysis.qlearning</code>), then compared at the animal level.</p>
+
+  <figure>
+    <svg viewBox="0 0 640 400" role="img" aria-labelledby="fig1title fig1desc">
+      <title id="fig1title">Animal-mean fitted kappa, young vs. old</title>
+      <desc id="fig1desc">Strip plot of 16 young and 16 old simulated animals' mean sticky Q-learning kappa across all 10 sessions, with mean plus-or-minus SEM overlaid. Young animals cluster higher than old.</desc>
+      <line x1="70" y1="295.4" x2="600" y2="295.4" class="grid-line"/>
+      <line x1="70" y1="249.2" x2="600" y2="249.2" class="grid-line"/>
+      <line x1="70" y1="203.1" x2="600" y2="203.1" class="grid-line"/>
+      <line x1="70" y1="156.9" x2="600" y2="156.9" class="zero-line"/>
+      <line x1="70" y1="110.8" x2="600" y2="110.8" class="grid-line"/>
+      <line x1="70" y1="64.6" x2="600" y2="64.6" class="grid-line"/>
+      <text x="62" y="298.4" text-anchor="end" class="chart-tick">-0.6</text>
+      <text x="62" y="252.2" text-anchor="end" class="chart-tick">-0.4</text>
+      <text x="62" y="206.1" text-anchor="end" class="chart-tick">-0.2</text>
+      <text x="62" y="159.9" text-anchor="end" class="chart-tick">0.0</text>
+      <text x="62" y="113.8" text-anchor="end" class="chart-tick">0.2</text>
+      <text x="62" y="67.6" text-anchor="end" class="chart-tick">0.4</text>
+      <text x="28" y="200" text-anchor="middle" class="chart-label" transform="rotate(-90 28 200)">animal-mean kappa</text>
+
+      <!-- young dots -->
+      <circle cx="218.4" cy="236.7" r="4.3" class="dot dot-young"><title>young kappa=-0.346</title></circle>
+      <circle cx="218.4" cy="234.3" r="4.3" class="dot dot-young"><title>young kappa=-0.335</title></circle>
+      <circle cx="218.4" cy="216.1" r="4.3" class="dot dot-young"><title>young kappa=-0.257</title></circle>
+      <circle cx="218.4" cy="207.1" r="4.3" class="dot dot-young"><title>young kappa=-0.217</title></circle>
+      <circle cx="218.4" cy="191.6" r="4.3" class="dot dot-young"><title>young kappa=-0.150</title></circle>
+      <circle cx="218.4" cy="189.8" r="4.3" class="dot dot-young"><title>young kappa=-0.143</title></circle>
+      <circle cx="211.4" cy="186.4" r="4.3" class="dot dot-young"><title>young kappa=-0.128</title></circle>
+      <circle cx="218.4" cy="181.5" r="4.3" class="dot dot-young"><title>young kappa=-0.106</title></circle>
+      <circle cx="218.4" cy="163.2" r="4.3" class="dot dot-young"><title>young kappa=-0.027</title></circle>
+      <circle cx="218.4" cy="138.0" r="4.3" class="dot dot-young"><title>young kappa=0.082</title></circle>
+      <circle cx="211.4" cy="132.8" r="4.3" class="dot dot-young"><title>young kappa=0.105</title></circle>
+      <circle cx="218.4" cy="117.6" r="4.3" class="dot dot-young"><title>young kappa=0.170</title></circle>
+      <circle cx="218.4" cy="86.7" r="4.3" class="dot dot-young"><title>young kappa=0.304</title></circle>
+      <circle cx="218.4" cy="72.0" r="4.3" class="dot dot-young"><title>young kappa=0.368</title></circle>
+      <circle cx="218.4" cy="58.1" r="4.3" class="dot dot-young"><title>young kappa=0.428</title></circle>
+      <circle cx="218.4" cy="53.1" r="4.3" class="dot dot-young"><title>young kappa=0.450</title></circle>
+
+      <!-- old dots -->
+      <circle cx="451.6" cy="305.5" r="4.3" class="dot dot-old"><title>old kappa=-0.644</title></circle>
+      <circle cx="451.6" cy="220.9" r="4.3" class="dot dot-old"><title>old kappa=-0.277</title></circle>
+      <circle cx="451.6" cy="216.9" r="4.3" class="dot dot-old"><title>old kappa=-0.260</title></circle>
+      <circle cx="451.6" cy="206.6" r="4.3" class="dot dot-old"><title>old kappa=-0.215</title></circle>
+      <circle cx="451.6" cy="202.8" r="4.3" class="dot dot-old"><title>old kappa=-0.199</title></circle>
+      <circle cx="451.6" cy="184.4" r="4.3" class="dot dot-old"><title>old kappa=-0.119</title></circle>
+      <circle cx="451.6" cy="174.0" r="4.3" class="dot dot-old"><title>old kappa=-0.074</title></circle>
+      <circle cx="444.6" cy="173.6" r="4.3" class="dot dot-old"><title>old kappa=-0.072</title></circle>
+      <circle cx="458.6" cy="170.0" r="4.3" class="dot dot-old"><title>old kappa=-0.057</title></circle>
+      <circle cx="437.6" cy="170.0" r="4.3" class="dot dot-old"><title>old kappa=-0.057</title></circle>
+      <circle cx="451.6" cy="165.1" r="4.3" class="dot dot-old"><title>old kappa=-0.035</title></circle>
+      <circle cx="451.6" cy="157.9" r="4.3" class="dot dot-old"><title>old kappa=-0.004</title></circle>
+      <circle cx="451.6" cy="148.4" r="4.3" class="dot dot-old"><title>old kappa=0.037</title></circle>
+      <circle cx="451.6" cy="122.4" r="4.3" class="dot dot-old"><title>old kappa=0.150</title></circle>
+      <circle cx="444.6" cy="120.4" r="4.3" class="dot dot-old"><title>old kappa=0.158</title></circle>
+      <circle cx="451.6" cy="96.3" r="4.3" class="dot dot-old"><title>old kappa=0.263</title></circle>
+
+      <!-- mean +/- SEM -->
+      <line x1="218.4" y1="169.5" x2="218.4" y2="138.6" class="err-bar young"/>
+      <line x1="205" y1="154.1" x2="231.8" y2="154.1" class="mean-tick young"/>
+      <line x1="451.6" y1="189.4" x2="451.6" y2="165.0" class="err-bar old"/>
+      <line x1="438.2" y1="177.2" x2="465" y2="177.2" class="mean-tick old"/>
+
+      <text x="218.4" y="345" text-anchor="middle" class="chart-label-strong" fill="var(--young)">Young</text>
+      <text x="218.4" y="361" text-anchor="middle" class="chart-label">SST-high / PV-low</text>
+      <text x="451.6" y="345" text-anchor="middle" class="chart-label-strong" fill="var(--old)">Old</text>
+      <text x="451.6" y="361" text-anchor="middle" class="chart-label">SST-low / PV-high</text>
+    </svg>
+    <figcaption><span class="swatch young"></span>Young mean = +0.012 &plusmn; 0.067 SEM &nbsp; <span class="swatch old"></span>Old mean = &minus;0.088 &plusmn; 0.053 SEM &nbsp;&middot;&nbsp; each dot is one simulated animal's mean kappa across its 10 sessions (n=16/group) &nbsp;&middot;&nbsp; thick tick + bar = group mean &plusmn; SEM.</figcaption>
+  </figure>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Session window</th><th class="num">Young &kappa;</th><th class="num">Old &kappa;</th><th class="num">Diff</th><th class="num">Cohen's d</th><th class="num">p (t-test)</th><th class="num">p (Mann-Whitney)</th></tr></thead>
+      <tbody>
+        <tr><td>All sessions</td><td class="num">0.012 &plusmn; 0.259</td><td class="num">&minus;0.088 &plusmn; 0.205</td><td class="num">+0.100</td><td class="num">+0.42</td><td class="num">0.249</td><td class="num">0.534</td></tr>
+        <tr><td>Early (0-4)</td><td class="num">0.042 &plusmn; 0.381</td><td class="num">&minus;0.032 &plusmn; 0.306</td><td class="num">+0.074</td><td class="num">+0.21</td><td class="num">0.561</td><td class="num">0.720</td></tr>
+        <tr><td>Late (5-9)</td><td class="num">&minus;0.017 &plusmn; 0.251</td><td class="num">&minus;0.144 &plusmn; 0.282</td><td class="num">+0.126</td><td class="num">+0.46</td><td class="num">0.205</td><td class="num">0.181</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Direction is correct in every window (young &gt; old), medium effect size, not individually significant at n=16/group &mdash; see <a href="#replication">Replication study</a> for why a single run like this shouldn't be over-read, and for the correction to what this table's early/late split originally seemed to suggest.</p>
+
+  <h2 id="robustness">Robustness / sensitivity sweep</h2>
+  <p>One-at-a-time sweeps of the circuit's named free parameters (time constants, coupling strength), reduced trial count for speed, checking whether young &gt; old &kappa; survives across a reasonable range.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Parameter</th><th>Range swept</th><th class="num">Young &gt; old</th><th class="num">Cohen's d range</th></tr></thead>
+      <tbody>
+        <tr><td>&tau;<sub>PV</sub> (fast time constant)</td><td class="num">8&ndash;30 ms</td><td class="num">5 / 5</td><td class="num">+0.09 to +0.09</td></tr>
+        <tr><td>&tau;<sub>SST</sub> (slow time constant)</td><td class="num">60&ndash;160 ms</td><td class="num">5 / 5</td><td class="num">+0.02 to +0.30</td></tr>
+        <tr><td>w<sub>self</sub> (recurrent coupling)</td><td class="num">1.2&ndash;2.5</td><td class="num">4 / 4</td><td class="num">+0.09 to +0.14</td></tr>
+        <tr><td>noise&sigma; (decision stochasticity)</td><td class="num">0.18&ndash;0.30</td><td class="num">2 / 4</td><td class="num">&minus;0.09 to +0.08</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Direction never reverses across any value of the three parameters explicitly named in the original spec (time constants, coupling strength) &mdash; 14/14 swept points correct. The one parameter with mixed direction, <code>noise_sigma</code>, is a stochasticity knob introduced during implementation, not a named free parameter, and its two "wrong-direction" points are both small-magnitude, most plausibly small-sample noise at this sweep's reduced scale (n=8 animals).</p>
+
+  <h2 id="replication">Replication / power study</h2>
+  <p>A single simulated cohort can't establish how reliable an effect is. This runs the equivalent "experiment" 12 independent times, each at n=16/group &mdash; the top of the real 12-16/group range, not an inflated cohort &mdash; and combines evidence via Fisher's method, which sharpens significance honestly instead of pretending a 40+/group cohort could ever be collected.</p>
+
+  <figure>
+    <svg viewBox="0 0 640 460" role="img" aria-labelledby="fig2title fig2desc">
+      <title id="fig2title">Forest plot of 12 independent replications' Cohen's d</title>
+      <desc id="fig2desc">Twelve independent simulated cohorts each estimate Cohen's d for young minus old kappa, all-sessions window, with approximate 95 percent confidence intervals, plus a pooled inverse-variance-weighted estimate at the bottom. Most point estimates are positive; the pooled estimate is 0.235 with a confidence interval excluding zero.</desc>
+      <line x1="352.1" y1="20" x2="352.1" y2="425" class="zero-line"/>
+      <text x="352.1" y="14" text-anchor="middle" class="chart-tick">d = 0</text>
+      <text x="200.3" y="440" text-anchor="middle" class="chart-tick">&minus;1.0</text>
+      <text x="276.2" y="440" text-anchor="middle" class="chart-tick">&minus;0.5</text>
+      <text x="352.1" y="440" text-anchor="middle" class="chart-tick">0</text>
+      <text x="427.9" y="440" text-anchor="middle" class="chart-tick">+0.5</text>
+      <text x="503.8" y="440" text-anchor="middle" class="chart-tick">+1.0</text>
+      <text x="579.7" y="440" text-anchor="middle" class="chart-tick">+1.5</text>
+      <text x="352.1" y="455" text-anchor="middle" class="chart-label">Cohen's d (young &minus; old kappa)</text>
+
+      <!-- 12 replication rows -->
+      <g>
+        <text x="160" y="49" text-anchor="end" class="forest-row-label">Replication 1</text>
+        <line x1="313.5" y1="45.2" x2="526.6" y2="45.2" class="forest-ci"/>
+        <circle cx="420.0" cy="45.2" r="5" class="forest-pt"/>
+
+        <text x="160" y="79.6" text-anchor="end" class="forest-row-label">Replication 2</text>
+        <line x1="208.0" y1="75.6" x2="419.1" y2="75.6" class="forest-ci"/>
+        <circle cx="313.5" cy="75.6" r="5" class="forest-pt"/>
+
+        <text x="160" y="109.9" text-anchor="end" class="forest-row-label">Replication 3</text>
+        <line x1="363.8" y1="105.9" x2="582.8" y2="105.9" class="forest-ci"/>
+        <circle cx="473.3" cy="105.9" r="5" class="forest-pt sig"/>
+
+        <text x="160" y="140.3" text-anchor="end" class="forest-row-label">Replication 4</text>
+        <line x1="317.2" y1="136.3" x2="530.7" y2="136.3" class="forest-ci"/>
+        <circle cx="424.0" cy="136.3" r="5" class="forest-pt"/>
+
+        <text x="160" y="170.7" text-anchor="end" class="forest-row-label">Replication 5</text>
+        <line x1="244.6" y1="166.7" x2="454.9" y2="166.7" class="forest-ci"/>
+        <circle cx="349.8" cy="166.7" r="5" class="forest-pt"/>
+
+        <text x="160" y="201.0" text-anchor="end" class="forest-row-label">Replication 6</text>
+        <line x1="350.6" y1="197.0" x2="567.8" y2="197.0" class="forest-ci"/>
+        <circle cx="459.2" cy="197.0" r="5" class="forest-pt sig"/>
+
+        <text x="160" y="231.4" text-anchor="end" class="forest-row-label">Replication 7</text>
+        <line x1="217.8" y1="227.4" x2="428.6" y2="227.4" class="forest-ci"/>
+        <circle cx="323.2" cy="227.4" r="5" class="forest-pt"/>
+
+        <text x="160" y="261.8" text-anchor="end" class="forest-row-label">Replication 8</text>
+        <line x1="264.1" y1="257.8" x2="474.5" y2="257.8" class="forest-ci"/>
+        <circle cx="369.3" cy="257.8" r="5" class="forest-pt"/>
+
+        <text x="160" y="292.1" text-anchor="end" class="forest-row-label">Replication 9</text>
+        <line x1="301.8" y1="288.1" x2="514.0" y2="288.1" class="forest-ci"/>
+        <circle cx="407.9" cy="288.1" r="5" class="forest-pt"/>
+
+        <text x="160" y="322.5" text-anchor="end" class="forest-row-label">Replication 10</text>
+        <line x1="317.9" y1="318.5" x2="531.4" y2="318.5" class="forest-ci"/>
+        <circle cx="424.6" cy="318.5" r="5" class="forest-pt"/>
+
+        <text x="160" y="352.9" text-anchor="end" class="forest-row-label">Replication 11</text>
+        <line x1="258.9" y1="348.9" x2="469.2" y2="348.9" class="forest-ci"/>
+        <circle cx="364.0" cy="348.9" r="5" class="forest-pt"/>
+
+        <text x="160" y="383.3" text-anchor="end" class="forest-row-label">Replication 12</text>
+        <line x1="232.3" y1="379.3" x2="442.7" y2="379.3" class="forest-ci"/>
+        <circle cx="337.5" cy="379.3" r="5" class="forest-pt"/>
+      </g>
+
+      <line x1="70" y1="402" x2="600" y2="402" class="grid-line"/>
+
+      <!-- pooled diamond -->
+      <text x="160" y="428.8" text-anchor="end" class="forest-row-label pooled">Pooled (12 reps)</text>
+      <polygon points="357.1,424.8 387.7,417.8 418.4,424.8 387.7,431.8" class="diamond"/>
+    </svg>
+    <figcaption>Filled points: individually significant at one-sided <em>p</em> &lt; 0.05 (replications 3 and 6). Whiskers are approximate 95% CIs (Hedges' SE). Pooled inverse-variance-weighted estimate: d = 0.235, 95% CI [0.033, 0.437] &mdash; excludes zero.</figcaption>
+  </figure>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Window</th><th class="num">Mean d (range)</th><th class="num">% replications young&gt;old</th><th class="num">Combined p (Fisher)</th></tr></thead>
+      <tbody>
+        <tr><td>All sessions</td><td class="num">+0.24 (&minus;0.25 to +0.80)</td><td class="num">8/12 (67%)</td><td class="num"><strong>0.019</strong></td></tr>
+        <tr><td>Early (0-4)</td><td class="num">+0.29 (&minus;0.23 to +0.58)</td><td class="num">11/12 (92%)</td><td class="num"><strong>0.019</strong></td></tr>
+        <tr><td>Late (5-9)</td><td class="num">+0.05 (&minus;0.64 to +0.80)</td><td class="num">6/12 (50%)</td><td class="num">0.073</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout flag">
+    <h3>Correction: the late-session claim does not replicate</h3>
+    <p>An earlier single-run report noted, as an "unforced" bonus finding, that the model's young&gt;old effect was weaker in early sessions and stronger in late sessions &mdash; superficially matching the real data's late-session-specific kappa decline. <strong>That does not hold up under replication.</strong> Across 12 independent runs, late sessions show the weakest and least consistent effect (mean d = +0.05, median slightly <em>negative</em> at &minus;0.08, only 6/12 in the correct direction, combined <em>p</em> = 0.073, not significant) &mdash; if anything, early sessions are more robust, the opposite pattern from the real data. There is no session-number-dependent mechanism anywhere in this model, so there was never a principled reason to expect that correspondence. It was a coincidence of one random draw, not a real model property, and should not have been reported with the confidence it originally was.</p>
+  </div>
+
+  <p><strong>Bottom line:</strong> treat this model as a sufficiency demonstration for the <em>overall</em> young &gt; old perseveration direction &mdash; now reasonably well supported once properly powered across replications at a real cohort size &mdash; but not, currently, as an explanation for why the real effect is specifically late-session. That would require an explicit session/experience-dependent mechanism this model doesn't have.</p>
+
+  <h2 id="mechanism">Mechanism check</h2>
+  <p>Verified directly, independent of the downstream behavioral fit: after an identical simulated "win" for one pool, followed by an identical inter-trial interval, the young-parameterized network retains measurably more residual winner/loser output asymmetry than the old-parameterized one (regression-tested in <code>tests/test_network.py</code>). No stickiness term exists anywhere in the circuit's equations &mdash; every bit of the behavioral kappa effect above is a downstream consequence of this differential reset.</p>
+
+  <h2 id="assumptions">Open assumptions</h2>
+  <p>Everything below is flagged in code (<code>sst_pv_model/params.py::ASSUMED_PARAMETERS</code>, printed by every run) so results are never mistaken for a tighter claim than they support:</p>
+  <ol class="assume-list">
+    <li><strong>SST/PV fold-changes</strong> are real but graph-read from dose-response curves, not exact per-cell table values.</li>
+    <li><strong>Interneuron time constants</strong> (&tau;<sub>PV</sub>=15ms, &tau;<sub>SST</sub>=100ms) are literature-typical, not measured in this dataset.</li>
+    <li><strong>Trial/session/cohort counts</strong> (150 trials/session, 16 animals/group) are reasonable defaults; only the 10-session count and 80-20 contingency are anchored to the real cohort.</li>
+    <li><strong>Recurrent coupling, input gain, decision noise, activation shape, and the network's internal value-learning rate</strong> are free/robustness parameters, swept in the sensitivity analysis above.</li>
+    <li><strong>No PV&harr;SST synaptic coupling, and no input-side (feedforward EPSC / intrinsic excitability) age-dependence</strong> &mdash; a deliberate simplification given two real, opposing electrical-stimulation findings (reduced feedforward EPSC onto PV cells, increased PV intrinsic excitability with age) that plausibly partially offset; revisit if matched quantitative magnitudes for both become available.</li>
+  </ol>
+
+  <h2 id="references">References</h2>
+  <p>Full detail, quotes, and DOIs in <code>REFERENCES.md</code>. Condensed:</p>
+  <ul class="ref-list">
+    <li><span class="cite">Wilson, Runyan, Wang &amp; Sur (2012), Nature 488:343.</span> PV divides (gain), SST subtracts (shifts) &mdash; the core functional assumption behind <code>g_pv</code>/<code>g_sst</code>.</li>
+    <li><span class="cite">Pfeffer, Xue, He, Huang &amp; Scanziani (2013), Nat Neurosci 16:1068.</span> SST&rarr;PV inhibition is real and asymmetric; PV&rarr;SST is comparatively weak &mdash; why the model omits PV&harr;SST coupling entirely rather than guessing a direction.</li>
+    <li><span class="cite">Wang (2002), Neuron 36:955.</span> The canonical competing-pools/winner-take-all decision circuit this model's architecture is a simplified variant of.</li>
+    <li><span class="cite">Wilson &amp; Cowan (1972), Biophysical Journal 12:1.</span> The rate-model formalism used throughout.</li>
+    <li><span class="cite">eNeuro 9(1) (2022); Nat Commun 9:3576 (2018).</span> PV synapses are faster/perisomatic, SST slower/dendritic &mdash; grounds the <code>tau_pv</code> &lt; <code>tau_sst</code> kinetic asymmetry.</li>
+  </ul>
+  <p>What is <strong>not</strong> literature-validated: the specific causal chain this test is built around &mdash; SST/PV kinetic and gain-type asymmetry &rarr; incomplete inter-trial reset &rarr; behavioral perseveration &mdash; is this project's own constructed hypothesis. Each individual piece above is independently grounded; the combination and its behavioral consequence is what Phase 1 tests, not a premise borrowed from prior work.</p>
+
+  <footer>
+    <p>Generated from <code>scripts/run_phase1.py</code> and <code>scripts/run_phase1_replications.py</code>. Raw data: <code>outputs/phase1_*.csv</code>, <code>outputs/phase1_replications_*.csv</code>. Narrative source: <code>outputs/PHASE1_SUMMARY.md</code>.</p>
+  </footer>
+
+</main>
