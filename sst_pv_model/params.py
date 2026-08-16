@@ -42,7 +42,10 @@ class NetworkParams:
     tau_E: float = 0.020        # s, ASSUMED: typical cortical pyramidal membrane/synaptic tau
     w_self: float = 2.0         # ASSUMED: recurrent self-excitation strength (free/robustness param)
     input_gain: float = 4.0     # ASSUMED: scales internal value V into a pool input drive
-    noise_sigma: float = 0.30   # ASSUMED: per-step input noise SD (sets choice stochasticity)
+    noise_sigma: float = 0.20   # ASSUMED: per-trial input noise SD (sets choice stochasticity);
+                                # calibrated so the fraction of sessions hitting the sticky-Q
+                                # optimizer's parameter bounds (~20-30%) is in the same ballpark
+                                # as the real cohort's own ~30% boundary-hit rate
 
     # --- inhibitory populations ---
     # Kinetics: PV faster than SST is an empirical constraint (isolated ChR2
