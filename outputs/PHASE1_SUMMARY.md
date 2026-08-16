@@ -70,6 +70,52 @@ simulated cohort (more animals/sessions) is the direct next step -- the
 direction is not in question, the *power to detect it* at this real,
 modest effect size is.
 
+## Replication/power study -- and a correction to the late-session claim above
+
+`python scripts/run_phase1_replications.py` (12 independent cohorts, each
+n_animals=16/group -- your real cohort size, not an inflated one -- 10
+sessions x 150 trials, sticky-Q fit with 8 restarts/session). Rationale:
+a single simulated cohort can't tell you how reliable an effect is: this
+runs the equivalent "experiment" 12 independent times and combines the
+evidence via Fisher's method, which is the honest way to sharpen
+significance without pretending you could ever collect a 40+/group cohort.
+Full output: `phase1_replications_raw.csv`, `phase1_replications_summary.txt`,
+`phase1_replications_cohend_hist.png`.
+
+| window | mean Cohen's d (range) | % replications young>old | combined p (Fisher) |
+|---|---|---|---|
+| All sessions | +0.24 ([-0.25, +0.80]) | 8/12 (67%) | **0.019** |
+| Early sessions (0-4) | +0.29 ([-0.23, +0.58]) | 11/12 (92%) | **0.019** |
+| Late sessions (5-9) | +0.05 ([-0.64, +0.80]) | 6/12 (50%) | 0.073 |
+
+- **The core direction is now on firmer ground**: combined across 12
+  independent real-sized cohorts, the young>old kappa direction reaches
+  significance overall (p=0.019) and specifically in early sessions
+  (p=0.019). Any single 16/group cohort is noisy enough that it often
+  won't show significance on its own (only 2/12 replications did,
+  individually) -- exactly why a single run shouldn't be over-read, and
+  why this replication step was worth doing.
+- **Correction: the "late-session correspondence" reported above does NOT
+  replicate, and I should not have highlighted it as confidently as I did.**
+  That claim was based on one single simulated draw. Across 12
+  independent replications, late sessions show the *weakest and least
+  consistent* effect (mean d=+0.05, median actually slightly *negative*
+  at -0.08, only 6/12 in the right direction, combined p=0.073, not
+  significant) -- if anything, early sessions show the more robust effect
+  in this model, which is the **opposite** of the real data's
+  late-session-specific kappa decline. The earlier single-run report's
+  "unforced late-session match" was very likely a coincidence of that
+  particular random draw, not a real property of the model. There is no
+  session-number-dependent mechanism anywhere in the model, so there's no
+  principled reason to expect it to reproduce a late-session-specific
+  effect -- and the replication data confirms it doesn't, reliably.
+- **Bottom line**: treat this model as a sufficiency demonstration for the
+  *overall* young>old perseveration direction, well-supported once
+  properly powered across replications at a real cohort size -- but not,
+  currently, as an explanation for *why* the real effect is late-session
+  specific. That would need an explicit session/experience-dependent
+  mechanism this model doesn't have.
+
 ## Mechanism check (regression-tested)
 
 Verified directly (not just via the downstream behavioral fit): after an
