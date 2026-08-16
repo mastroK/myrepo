@@ -6,59 +6,69 @@ Raw outputs: `phase1_session_fits_{young,old}.csv`,
 `phase1_kappa_comparison.csv`, `phase1_kappa_by_age.png`,
 `phase1_robustness_report.txt`, `phase1_sweep_*.csv`.
 
-**Caveat up front:** SST/PV fold-change amplitudes are still PLACEHOLDER
-values (2x decrease / 2x increase, direction-only from your stated
-background), not your real slice-electrophysiology numbers. Everything
-below is a qualitative/directional check, not a magnitude match.
+**This version uses real SST/PV fold-changes**, read off the saturating
+plateau (~15 mW) of your SST-Cre;Ai32 / PV-Cre;Ai32 ChR2 charge (fC/pF)
+dose-response curves: SST fold-change (old/young) ~0.73, PV fold-change
+~1.4, ages 6-9wk (young) vs. 16-36wk (old). These are graph-read estimates,
+not exact per-cell table values -- ask for the underlying table if tighter
+precision is wanted. Both are milder than the placeholder values used in
+the first pass (0.5 / 2.0), which matters for what follows: the model's
+effect size shrinks with the real, smaller inhibitory contrast between
+ages. See `sst_pv_model/params.py` for the full derivation and caveats.
 
 ## Headline result
 
 | | young (animal-mean kappa) | old (animal-mean kappa) |
 |---|---|---|
-| All sessions | +0.012 +/- 0.259 | -0.111 +/- 0.200 |
-| Early sessions (0-4) | +0.042 +/- 0.381 | -0.049 +/- 0.307 |
-| Late sessions (5-9) | -0.017 +/- 0.251 | -0.172 +/- 0.291 |
+| All sessions | +0.012 +/- 0.259 | -0.088 +/- 0.205 |
+| Early sessions (0-4) | +0.042 +/- 0.381 | -0.032 +/- 0.306 |
+| Late sessions (5-9) | -0.017 +/- 0.251 | -0.144 +/- 0.282 |
 
-- **Direction is correct**: young (SST-high/PV-low) shows higher fitted
-  kappa than old (SST-low/PV-high) in every session window, with a
-  medium effect size (Cohen's d = 0.52 overall, 0.55 late sessions).
+- **Direction is still correct**: young shows higher fitted kappa than old
+  in every session window, with a small-to-medium effect size (Cohen's
+  d = 0.42 overall, 0.46 late sessions) -- smaller than the placeholder-run's
+  d = 0.52 / 0.55, as expected given the real fold-changes are milder.
 - **Not statistically significant at this cohort size** (all sessions:
-  t-test p=0.16, Mann-Whitney p=0.34; late sessions: p=0.13 / p=0.09).
-  This mirrors the real data's own finding, which needed a well-powered
-  cohort and survived only after correction for the specific late-session
-  window -- so an underpowered but correctly-directed effect here is
-  arguably the *expected* qualitative outcome, not a failure. Bigger
-  simulated cohorts would sharpen this if a firmer answer is wanted before
-  Phase 2.
-- **Unforced late-session correspondence**: exactly like the real cohort,
-  the effect is weaker/non-significant in early sessions (d=0.26, p=0.48)
-  and stronger/closer-to-significant in late sessions (d=0.55, p=0.09-0.13).
-  This wasn't built in -- there's no session-number-dependent mechanism in
-  the model -- so it's a notable (if noisy, n=16/group) qualitative match
-  worth flagging, not something to over-interpret.
+  t-test p=0.25, Mann-Whitney p=0.53; late sessions: p=0.21 / p=0.18).
+  Weaker than the placeholder run's p-values. This is the honest
+  consequence of using the real (smaller) SST/PV amplitude contrast rather
+  than an exaggerated placeholder one -- the qualitative direction survives,
+  but detecting it with confidence would need a larger simulated (or real)
+  cohort than 16/group.
+- **Late-session pattern still present but weaker**: effect is smaller in
+  early sessions (d=0.21) than late (d=0.46), echoing the real data's
+  late-session-specific kappa effect, though less cleanly than in the
+  placeholder run.
 - Sticky-Q optimizer boundary-hit rate: 16-17% of sessions (real cohort:
-  ~30%) -- same ballpark, simulated choices are somewhat more probabilistic
-  than the real animals' but not wildly off.
+  ~30%), unchanged from the placeholder run (this is governed by
+  `noise_sigma`, not the fold-changes).
 
-## Robustness / sensitivity sweep (Phase 1 step 5)
+## Robustness / sensitivity sweep (Phase 1 step 5) -- weaker than before
 
 One-at-a-time sweeps around baseline, reduced trial count for speed:
 
-- **tau_pv** (PV interneuron time constant): young > old kappa in **5/5**
-  swept values (8-30 ms).
-- **tau_sst** (SST interneuron time constant): **5/5** (60-160 ms).
-- **w_self** (recurrent self-excitation / coupling strength): **4/4**
-  (1.2-2.5).
-- **noise_sigma** (decision stochasticity, not named in your prompt but a
-  free parameter of this implementation): **3/4** -- one point (0.18)
-  came out slightly negative (diff=-0.06, near zero), most plausibly
-  small-sample noise at the sweep's reduced scale (n=8 animals) rather
-  than a real reversal.
+- **tau_pv**: young > old kappa in **5/5** swept values, but effect sizes
+  are now small (Cohen's d ~0.09-0.09 throughout).
+- **tau_sst**: **5/5**, but shrinks to near-null at the longest tau_sst
+  tested (160 ms: d=0.018, essentially no effect).
+- **w_self**: **4/4**, effect sizes modest (d ~0.09-0.14).
+- **noise_sigma**: **2/4** -- direction reversed at two swept values
+  (0.18 and 0.30), both small-magnitude reversals (diff approx -0.02 to
+  -0.08) most likely small-sample noise at this sweep's reduced scale
+  (n=8 animals), not a clear structural failure -- but this is a real
+  weakening from the placeholder run's 3/4.
 
-**Conclusion**: across every parameter explicitly named in the prompt
-(time constants, coupling strength), the young>old kappa direction was
-never reversed. The one exception was in a parameter I introduced myself
-(noise_sigma) and was a near-null point, not a clear flip.
+**Honest conclusion**: with the real, milder SST/PV fold-changes, the
+qualitative direction (young > old kappa) still holds in the headline
+comparison and in every swept value of the three parameters explicitly
+named in your prompt (tau_pv, tau_sst, w_self) -- it is not fragile to
+those. But the effect is smaller and noisier than the placeholder run
+suggested, doesn't reach significance at n=16/group, and is no longer
+robust to the noise_sigma parameter (a stochasticity knob I introduced,
+not one you named). If you want a firmer statistical read, scaling up the
+simulated cohort (more animals/sessions) is the direct next step -- the
+direction is not in question, the *power to detect it* at this real,
+modest effect size is.
 
 ## Mechanism check (regression-tested)
 
@@ -73,7 +83,6 @@ downstream consequence of this differential reset.
 
 See `sst_pv_model/params.py::ASSUMED_PARAMETERS` for the full list
 (interneuron time constants, trial/session counts, cohort size, block
-length, activation function shape, network's internal learning rate).
-The two that matter most for magnitude, if you want a tighter match to
-your real effect size: the SST/PV fold-change values, and the real
-trial/session/cohort structure.
+length, activation function shape, network's internal learning rate). The
+SST/PV fold-changes are now real (if graph-read); the biggest remaining
+lever on magnitude is the real trial/session/cohort structure.
