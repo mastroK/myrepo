@@ -15,25 +15,30 @@ from dataclasses import dataclass, field, replace
 
 
 # ---------------------------------------------------------------------------
-# EMPIRICAL (fold-change) anchors -- PLACEHOLDER VALUES, see note below.
-# ---------------------------------------------------------------------------
-# You asked to proceed with clearly-flagged placeholders rather than block
-# Phase 1 on the real numbers. These two fold-changes are the ONLY inputs
-# that set how much SST vs. PV inhibitory weight the "young" and "old"
-# networks get. Replace SST_FOLD_CHANGE_OLD_OVER_YOUNG and
-# PV_FOLD_CHANGE_OLD_OVER_YOUNG with your isolated SST-Cre;Ai32 and
-# PV-Cre;Ai32 ChR2-evoked amplitude ratios (old/young) and every downstream
-# number in Phase 1/2 will update automatically.
+# EMPIRICAL (fold-change) anchors -- from real SST-Cre;Ai32 / PV-Cre;Ai32
+# ChR2 dose-response curves (mean +/- SEM evoked charge, fC/pF, vs. laser
+# power), read off the saturating (~15 mW) plateau of each age-group curve.
+# These are graph-read estimates, not exact table values -- ask for the
+# underlying per-cell table if tighter precision is wanted.
 #
-# Direction is taken from your stated background (SST amplitude declines
-# with age, PV amplitude increases with age); MAGNITUDE below is an
-# illustrative placeholder, not a measurement.
-SST_FOLD_CHANGE_OLD_OVER_YOUNG = 0.5   # PLACEHOLDER: assumed 2x amplitude decrease
-PV_FOLD_CHANGE_OLD_OVER_YOUNG = 2.0    # PLACEHOLDER: assumed 2x amplitude increase
+#   PV:  young (6-9wk) approx 3650 fC/pF  ->  old (16-36wk) approx 5150 fC/pF
+#        fold-change (old/young) approx 1.4
+#   SST: young (6-9wk) approx 16100 fC/pF ->  old (16-36wk) approx 11700 fC/pF
+#        fold-change (old/young) approx 0.73
+#
+# Note the two curves differ in SHAPE, not just magnitude: PV's age gap is
+# present across the whole laser-power range, while SST's curves overlap at
+# low power and only diverge near saturation. The model only uses the
+# saturating-charge fold-change below, so this shape difference doesn't
+# currently affect it -- flagged in case a intensity-resolved treatment
+# matters later.
+SST_FOLD_CHANGE_OLD_OVER_YOUNG = 0.73   # EMPIRICAL (graph-read), SST charge declines w/ age
+PV_FOLD_CHANGE_OLD_OVER_YOUNG = 1.4     # EMPIRICAL (graph-read), PV charge increases w/ age
 
-# Age mapping, per your instruction: use the youngest/oldest bandit-cohort
-# bins directly (2-5wk vs 16-30wk) rather than separate slice-ephys ages.
-AGE_LABELS = {"young": "2-5wk", "old": "16-30wk"}
+# Age mapping: per your confirmation, "young" = 6-9wk and "old" = 16-36wk,
+# matching the ages actually recorded in the SST/PV ChR2 slice data (not the
+# behavioral cohort's own 2-5wk/16-30wk bins, which weren't recorded here).
+AGE_LABELS = {"young": "6-9wk", "old": "16-36wk"}
 
 
 @dataclass(frozen=True)
@@ -116,8 +121,8 @@ class TaskParams:
 
 
 ASSUMED_PARAMETERS = {
-    "SST_FOLD_CHANGE_OLD_OVER_YOUNG": "PLACEHOLDER direction-only (SST declines w/ age); magnitude not from real data",
-    "PV_FOLD_CHANGE_OLD_OVER_YOUNG": "PLACEHOLDER direction-only (PV increases w/ age); magnitude not from real data",
+    "SST_FOLD_CHANGE_OLD_OVER_YOUNG": "EMPIRICAL but graph-read (not exact table values) from SST-ChR2 charge dose-response curves, saturating plateau, 6-9wk vs 16-36wk",
+    "PV_FOLD_CHANGE_OLD_OVER_YOUNG": "EMPIRICAL but graph-read (not exact table values) from PV-ChR2 charge dose-response curves, saturating plateau, 6-9wk vs 16-36wk",
     "NetworkParams.tau_E": "literature-typical, not measured in this dataset",
     "NetworkParams.w_self": "free/robustness parameter, swept in sensitivity analysis",
     "NetworkParams.input_gain": "free/robustness parameter, swept in sensitivity analysis",
