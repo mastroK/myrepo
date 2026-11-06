@@ -9,7 +9,14 @@ pool i's own activity is what suppresses pool j, and vice versa.
   s_pv[:, i]  : fast time constant, driven by E[:, i], projects a DIVISIVE
                 (perisomatic-like) gain suppression onto pool j's output.
   s_sst[:, i] : slow time constant, driven by E[:, i], projects a
-                SUBTRACTIVE (dendritic-like) input offset onto pool j.
+                SUBTRACTIVE (dendritic-like) input offset onto pool j, AND
+                (added when an age-dependent SST->PV coupling was reported,
+                see params.py::SST_TO_PV_GAIN_*) discounts how much of pool
+                i's own PV activity reaches pool j as divisive suppression.
+                This is a local (same-origin-pool) effect: pool i's SST
+                reduces pool i's PV's effective reach, it does not touch
+                pool j's own PV/SST. PV->SST remains unmodeled in either
+                direction (Pfeffer et al. 2013 asymmetry).
 
 Neither the excitatory pools nor the interneuron pools are reset between
 trials -- all state variables simply carry over from the end of one trial
@@ -21,6 +28,20 @@ PREVIOUS winner's own (slow, if SST-dominated) interneuron drive that keeps
 suppressing the loser, an incompletely-decayed SST tone leaves the loser
 pool still below baseline when the next trial's stimulus arrives, biasing
 the network to repeat its previous choice.
+
+Modeling choice on the SST->PV discount (flagged, not a literal biophysical
+reconstruction): the real finding is about the evoked IPSC's own kinetics
+in PV (first ~50ms age-invariant, longer/sustained component grows with
+age) -- a property of that specific synapse, independent of SST's own
+subtractive pathway onto the competing pool (s_sst, tau_sst=100ms, which
+keeps its existing unchanged role below). This needs its OWN, dedicated,
+SLOWER state variable (s_sst_pv, tau_sst_pv) rather than reusing s_sst
+directly: s_sst itself is already substantially built up by the END of a
+150ms stimulus epoch (tau_sst=100ms means ~78% risen by then), so reusing
+it would make the age-difference appear immediately at ITI onset, not
+after the reported ~50ms. A separate, slower leaky integrator (same local-E
+drive, longer tau) stays small in absolute terms for longer, reproducing
+"early (~50ms) unaffected, diverges later" -- see `_pv_cross_net` below.
 
 Everything is vectorized over a `batch` axis so many independent simulated
 sessions/animals can be integrated in lockstep with plain numpy loops.
@@ -35,17 +56,20 @@ _OTHER = np.array([1, 0])  # index of the competing pool for pool i
 class NetworkState:
     """State for `batch` independent parallel simulations.
 
-    E     : (batch, 2) excitatory pool rates
-    s_pv  : (batch, 2) local fast/divisive inhibitory drive, one per pool
-    s_sst : (batch, 2) local slow/subtractive inhibitory drive, one per pool
+    E         : (batch, 2) excitatory pool rates
+    s_pv      : (batch, 2) local fast/divisive inhibitory drive, one per pool
+    s_sst     : (batch, 2) local slow/subtractive inhibitory drive, one per pool
+    s_sst_pv  : (batch, 2) local, SLOWER SST->PV discount drive, one per pool
+                (separate from s_sst -- see module docstring)
     """
 
-    __slots__ = ("E", "s_pv", "s_sst")
+    __slots__ = ("E", "s_pv", "s_sst", "s_sst_pv")
 
     def __init__(self, batch):
         self.E = np.zeros((batch, N_POOLS))
         self.s_pv = np.zeros((batch, N_POOLS))
         self.s_sst = np.zeros((batch, N_POOLS))
+        self.s_sst_pv = np.zeros((batch, N_POOLS))
 
 
 def _activation(x, theta, k_sig):
@@ -54,16 +78,37 @@ def _activation(x, theta, k_sig):
     return 1.0 / (1.0 + np.exp(-z))
 
 
+def _pv_cross_net(state, params):
+    """Pool i's PV activity as it reaches pool j (the competing pool), net
+    of pool i's OWN (slower) SST->PV drive discounting pool i's PV efficacy
+    (local, same-origin-pool effect -- see module docstring).
+
+    A FRACTIONAL discount (`s_pv_cross * (1 - fraction_cancelled)`), not an
+    absolute subtraction: an absolute subtraction was tried and rejected --
+    it let g_sst_to_pv erode the divisive gain enough, independent of
+    s_pv_cross's own current scale, to destabilize the circuit (w_self=2.0
+    is self-excitation stronger than unity; once PV's stabilizing divisive
+    gain was eroded too far, the losing pool's own recurrent excitation ran
+    away with zero external input). A fractional discount can reduce PV's
+    reach by at most `g_sst_to_pv` (clipped to [0, 1]) of whatever it
+    currently is, never past what currently exists, which keeps gain >= 1
+    structurally rather than by accident.
+    """
+    s_pv_cross = state.s_pv[:, _OTHER]       # (batch, 2): pool i's PV, as seen by pool j
+    s_sst_pv_cross = state.s_sst_pv[:, _OTHER]  # (batch, 2): pool i's slow SST->PV drive
+    fraction_cancelled = np.clip(params.g_sst_to_pv * s_sst_pv_cross, 0.0, 1.0)
+    return s_pv_cross * (1.0 - fraction_cancelled)
+
+
 def step(state, params, I_input, dt):
     """Advance `state` in place by one Euler step of size `dt`.
 
     I_input: (batch, 2) external drive to each excitatory pool this step
              (zero during the inter-trial interval).
     """
-    s_pv_cross = state.s_pv[:, _OTHER]    # (batch, 2): pool i is inhibited by pool j's PV
     s_sst_cross = state.s_sst[:, _OTHER]  # (batch, 2): pool i is inhibited by pool j's SST
 
-    gain = 1.0 + params.g_pv * s_pv_cross
+    gain = 1.0 + params.g_pv * _pv_cross_net(state, params)
     drive = (params.w_self * state.E + I_input - params.g_sst * s_sst_cross) / gain
 
     F = _activation(drive, params.theta, params.k_sig)
@@ -71,18 +116,19 @@ def step(state, params, I_input, dt):
 
     d_pv = (-state.s_pv + state.E) / params.tau_pv
     d_sst = (-state.s_sst + state.E) / params.tau_sst
+    d_sst_pv = (-state.s_sst_pv + state.E) / params.tau_sst_pv
 
     state.E = state.E + dt * dE
     state.s_pv = state.s_pv + dt * d_pv
     state.s_sst = state.s_sst + dt * d_sst
+    state.s_sst_pv = state.s_sst_pv + dt * d_sst_pv
     return state
 
 
 def output_rates(state, params):
     """Divisively-gated readout rate of each pool (what downstream/choice
     and, in Phase 2, the pyramidal photometry readout are driven by)."""
-    s_pv_cross = state.s_pv[:, _OTHER]
-    gain = 1.0 + params.g_pv * s_pv_cross
+    gain = 1.0 + params.g_pv * _pv_cross_net(state, params)
     return state.E / gain
 
 

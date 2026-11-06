@@ -15,18 +15,18 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from .params import NetworkParams, TaskParams, SST_FOLD_CHANGE_OLD_OVER_YOUNG, PV_FOLD_CHANGE_OLD_OVER_YOUNG
+from .params import NetworkParams, TaskParams, scaled_params
 from .simulate import simulate_group
 from .qlearning_fit import fit_session_level
 
 
 def _run_one(base_params, task_params, n_animals, seed):
-    young = replace(base_params, g_sst=1.0, g_pv=1.0)
-    old = replace(
-        base_params,
-        g_sst=1.0 * SST_FOLD_CHANGE_OLD_OVER_YOUNG,
-        g_pv=1.0 * PV_FOLD_CHANGE_OLD_OVER_YOUNG,
-    )
+    # Route through scaled_params() (not an inline re-derivation) so every
+    # age-scaled field -- g_sst, g_pv, and now g_sst_to_pv -- stays in sync
+    # with scaled_params() by construction instead of needing to be
+    # duplicated and kept up to date here by hand.
+    young = scaled_params("young", base_params)
+    old = scaled_params("old", base_params)
     df_y = simulate_group(young, task_params, n_animals=n_animals, seed=seed, age_label="young")
     df_o = simulate_group(old, task_params, n_animals=n_animals, seed=seed + 1, age_label="old")
     fit_y = fit_session_level(df_y, n_starts=8)

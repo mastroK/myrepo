@@ -35,6 +35,30 @@ from dataclasses import dataclass, field, replace
 SST_FOLD_CHANGE_OLD_OVER_YOUNG = 0.73   # EMPIRICAL (graph-read), SST charge declines w/ age
 PV_FOLD_CHANGE_OLD_OVER_YOUNG = 1.4     # EMPIRICAL (graph-read), PV charge increases w/ age
 
+# ---------------------------------------------------------------------------
+# EMPIRICAL (rough) anchor -- SST-to-PV coupling, added when you reported
+# (2026-11-06) that the SST->PV IPSC's kinetics themselves change with age:
+# the first ~50ms of the evoked IPSC is indistinguishable across age, but the
+# longer/sustained component of the evoked charge grows with age (max evoked
+# charge unchanged -- this is a KINETIC/shape change, not a bigger ceiling).
+# You gave a rough charge estimate of "something like 0.25 to 0.75" -- read
+# here as g_sst_to_pv_young=0.25, g_sst_to_pv_old=0.75 (a ~3x fold-change),
+# NOT graph-read with the same precision as the SST/PV output fold-changes
+# above. Revisit if a tighter number becomes available.
+#
+# Modeling choice (flagged, not a literal biophysical reconstruction): rather
+# than adding a second state variable with its own kinetics to reproduce the
+# fast-unchanged/slow-growing IPSC shape directly, this reuses the EXISTING
+# s_sst state (already a slow, tau_sst=100ms leaky integrator of local E) as
+# the discount signal on PV's cross-pool divisive efficacy -- see
+# network.py::step/output_rates. Because s_sst itself starts at ~0 and only
+# builds up over tau_sst, this reproduces "early (~50ms) unaffected, later
+# divergence" structurally, without needing a second fast+slow kinetic
+# component: the age-dependent gain only has something to act on once s_sst
+# has risen, which takes time regardless of age.
+SST_TO_PV_GAIN_YOUNG = 0.25   # EMPIRICAL (rough, user-reported, not graph-read)
+SST_TO_PV_GAIN_OLD = 0.75     # EMPIRICAL (rough, user-reported, not graph-read)
+
 # Age mapping: per your confirmation, "young" = 6-9wk and "old" = 16-36wk,
 # matching the ages actually recorded in the SST/PV ChR2 slice data (not the
 # behavioral cohort's own 2-5wk/16-30wk bins, which weren't recorded here).
@@ -63,9 +87,26 @@ class NetworkParams:
     # in Phase 2 an emergent prediction rather than something hardcoded in.
     tau_pv: float = 0.015        # s, ASSUMED (literature-typical fast/perisomatic)
     tau_sst: float = 0.100       # s, ASSUMED (literature-typical slow/dendritic)
+    tau_sst_pv: float = 0.300    # s, ASSUMED: kinetics of the SEPARATE SST->PV late/
+                                 # sustained coupling (see SST_TO_PV_GAIN_* above) -- NOT
+                                 # the same pathway/variable as tau_sst (which keeps its
+                                 # existing, unchanged role subtracting onto the competing
+                                 # pool's drive). Deliberately slower than tau_sst: reusing
+                                 # tau_sst's own state directly was tried and rejected --
+                                 # s_sst is already ~78% built up by the end of a 150ms
+                                 # stimulus epoch, which would make the age-difference in
+                                 # this new pathway appear immediately rather than after
+                                 # the reported ~50ms. This value is a placeholder chosen
+                                 # to keep that property; not graph-read, revisit if you
+                                 # have an actual decay-tau estimate for the sustained
+                                 # component.
 
     g_pv: float = 1.0            # divisive gain weight, set per age from PV fold-change
     g_sst: float = 1.0           # subtractive weight, set per age from SST fold-change
+    g_sst_to_pv: float = 0.0     # local SST->PV discount on PV's cross-pool divisive
+                                 # efficacy, set per age from SST_TO_PV_GAIN_*; 0.0 default
+                                 # means "no coupling" for any caller that doesn't go
+                                 # through scaled_params() (e.g. ad-hoc NetworkParams()).
 
     # NOTE on what is deliberately NOT modeled here: s_pv/s_sst are driven by
     # the local excitatory pool (state.E) with a FIXED, age-invariant
@@ -83,6 +124,14 @@ class NetworkParams:
     # we don't have matched quantitative magnitudes for both to know
     # whether/how much they actually cancel, and no equivalent SST-cell
     # excitability data. Revisit if those numbers become available.
+    #
+    # UPDATE (reopened 2026-11-06): a direct PV<->SST coupling has now been
+    # added in one direction -- SST->PV, via g_sst_to_pv above -- since you
+    # reported a real age-dependent kinetic change in that specific synapse
+    # (see SST_TO_PV_GAIN_* above). PV->SST remains unmodeled (Pfeffer et
+    # al. 2013's asymmetric-connectivity justification for that direction is
+    # unaffected by this finding, which is specifically about the SST->PV
+    # arm).
 
     # --- activation function F(x) = 1 / (1 + exp(-(x-theta)/k)) ---
     theta: float = 0.0           # ASSUMED: activation threshold/offset
@@ -101,12 +150,13 @@ def scaled_params(age: str, base: NetworkParams = NetworkParams()) -> NetworkPar
     normalization -- only the young:old RATIO is anchored to your data.
     """
     if age == "young":
-        return replace(base, g_sst=1.0, g_pv=1.0)
+        return replace(base, g_sst=1.0, g_pv=1.0, g_sst_to_pv=SST_TO_PV_GAIN_YOUNG)
     elif age == "old":
         return replace(
             base,
             g_sst=1.0 * SST_FOLD_CHANGE_OLD_OVER_YOUNG,
             g_pv=1.0 * PV_FOLD_CHANGE_OLD_OVER_YOUNG,
+            g_sst_to_pv=SST_TO_PV_GAIN_OLD,
         )
     else:
         raise ValueError(f"unknown age label: {age!r}")
@@ -151,6 +201,8 @@ ASSUMED_PARAMETERS = {
     "TaskParams.n_trials_per_session": "ASSUMED session length, not the real cohort's exact count",
     "TaskParams.n_animals_per_group": "ASSUMED cohort size",
     "TaskParams.block_len_min/max": "ASSUMED reversal-block length range",
+    "SST_TO_PV_GAIN_YOUNG / SST_TO_PV_GAIN_OLD": "EMPIRICAL but rough/user-reported (not graph-read), SST->PV IPSC's sustained component grows with age while the first ~50ms is unchanged",
+    "NetworkParams.tau_sst_pv": "ASSUMED placeholder kinetics for the separate SST->PV late-component pathway, not measured in this dataset",
 }
 
 
