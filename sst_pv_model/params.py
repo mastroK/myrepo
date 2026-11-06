@@ -46,18 +46,29 @@ PV_FOLD_CHANGE_OLD_OVER_YOUNG = 1.4     # EMPIRICAL (graph-read), PV charge incr
 # NOT graph-read with the same precision as the SST/PV output fold-changes
 # above. Revisit if a tighter number becomes available.
 #
-# Modeling choice (flagged, not a literal biophysical reconstruction): rather
-# than adding a second state variable with its own kinetics to reproduce the
-# fast-unchanged/slow-growing IPSC shape directly, this reuses the EXISTING
-# s_sst state (already a slow, tau_sst=100ms leaky integrator of local E) as
-# the discount signal on PV's cross-pool divisive efficacy -- see
-# network.py::step/output_rates. Because s_sst itself starts at ~0 and only
-# builds up over tau_sst, this reproduces "early (~50ms) unaffected, later
-# divergence" structurally, without needing a second fast+slow kinetic
-# component: the age-dependent gain only has something to act on once s_sst
-# has risen, which takes time regardless of age.
-SST_TO_PV_GAIN_YOUNG = 0.25   # EMPIRICAL (rough, user-reported, not graph-read)
-SST_TO_PV_GAIN_OLD = 0.75     # EMPIRICAL (rough, user-reported, not graph-read)
+# CONFIRMED (2026-11-06): these are average point estimates at midpoint
+# stimulation intensity, not a loose uncertainty range -- young=0.25,
+# old=0.75, a ~3x change. Still not graph-read with the same precision as
+# the SST/PV output fold-changes above (no underlying dose-response table
+# given), but the two numbers themselves are the reported values to use,
+# not endpoints of an unresolved band.
+#
+# Modeling choice (flagged, not a literal biophysical reconstruction): this
+# discount is implemented via a SEPARATE, dedicated state variable (see
+# network.py::s_sst_pv / tau_sst_pv), not by reusing the existing s_sst
+# state -- s_sst is already ~78% built up by the end of a 150ms stimulus
+# epoch, which would make the age-difference appear immediately rather than
+# after the reported ~50ms. The discount is applied FRACTIONALLY (a % of
+# PV's current divisive reach, never an absolute subtraction) -- an
+# absolute-subtraction version was tried first and caused a genuine network
+# instability (w_self=2.0 recurrent self-excitation overran the losing pool
+# once PV's divisive gain was eroded past a threshold). Even with the
+# fractional/bounded version, AT THESE CONFIRMED VALUES the core mechanism
+# check (tests/test_network.py) no longer shows a simple "old has smaller
+# but still-positive residual asymmetry" result -- see that test and
+# PHASE1_SUMMARY.md for the current (revised) result.
+SST_TO_PV_GAIN_YOUNG = 0.25   # EMPIRICAL (confirmed average, midpoint stimulation)
+SST_TO_PV_GAIN_OLD = 0.75     # EMPIRICAL (confirmed average, midpoint stimulation)
 
 # Age mapping: per your confirmation, "young" = 6-9wk and "old" = 16-36wk,
 # matching the ages actually recorded in the SST/PV ChR2 slice data (not the

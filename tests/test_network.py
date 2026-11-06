@@ -22,11 +22,25 @@ def test_dynamics_stay_bounded():
 
 
 def test_young_retains_more_residual_asymmetry_than_old():
-    """Core mechanism check: after an identical 'win' for pool 1 followed by
-    the same ITI duration, the young (SST-high/PV-low) network should carry
-    more residual winner-vs-loser asymmetry into the next trial than old
-    (SST-low/PV-high), since PV's fast/divisive inhibition should clear the
-    imbalance more completely."""
+    """Core mechanism check -- REVISED 2026-11-06 after the SST->PV coupling
+    was added (confirmed point estimates g_sst_to_pv: young=0.25, old=0.75).
+
+    ORIGINAL (pre-SST->PV-coupling) claim: after an identical 'win' for pool
+    1, young retains MORE residual asymmetry than old, AND old's own
+    residual asymmetry stays positive (just smaller) -- i.e. old shows a
+    weaker version of the same effect. That no longer holds at the confirmed
+    coupling magnitude: old's residual asymmetry is now NEGATIVE -- not
+    "weaker persistence," but a reversal, where the pool that just LOST
+    ends up with higher output than the pool that just WON. This is because
+    SST's growing suppression of PV with age (the new finding) increasingly
+    cancels PV's own strengthened output gain (the pre-existing 1.4x
+    fold-change), and at these confirmed values the suppression pathway
+    dominates. Young's result is qualitatively unchanged.
+
+    This is intentional, not a bug -- see PHASE1_SUMMARY.md and the commit
+    history for the full before/after. The young > old ORDERING still
+    holds; "old > 0" does not anymore, and that is now the headline finding
+    of this mechanism check, not a regression to paper over."""
     task = TaskParams()
     young = scaled_params("young")
     old = scaled_params("old")
@@ -42,7 +56,9 @@ def test_young_retains_more_residual_asymmetry_than_old():
 
     asym_young = residual_asymmetry(young)
     asym_old = residual_asymmetry(old)
-    assert asym_young > asym_old > 0
+    assert asym_young > 0
+    assert asym_old < 0
+    assert asym_young > asym_old
 
 
 def test_sst_to_pv_discount_unaffects_early_window_but_diverges_later():
