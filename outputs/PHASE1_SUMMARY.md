@@ -344,6 +344,54 @@ artifact of `w_self` being an ASSUMED (not empirically-anchored) free
 parameter -- worth a `w_self` cross-sweep before treating the x1.7-2.2
 regime as biologically meaningful.
 
+## w_self cross-sweep: is the high-inhibition threshold an artifact? (reduced scale, 2026-11-07)
+
+`python scripts/run_w_self_threshold_crosssweep.py` -- re-ran the
+total-inhibition multiplier sweep (focused on the x0.5-x2.3 transition
+zone) at the same four `w_self` (recurrent self-excitation strength, an
+ASSUMED free parameter) values `sensitivity.py` already sweeps (1.2, 1.5,
+2.0, 2.5), for both ages, at reduced/sensitivity scale. Full output:
+`outputs/phase1_w_self_threshold_crosssweep.csv`,
+`outputs/phase1_w_self_threshold_crosssweep.png`.
+
+**Answer: both things are true at once.**
+
+- **The threshold itself is not an artifact of the specific `w_self=2.0`
+  default** -- the same qualitative shape (flat/noisy below roughly
+  x1.3-1.5, then a sharp rise to near-total perseveration) appears at
+  EVERY `w_self` value tested, from 1.2 up to 2.5, in both ages. This is a
+  robust feature of this winner-take-all architecture across a >2x range
+  of the recurrent-excitation parameter, not a coincidence of one chosen
+  setting.
+- **But its exact onset location and steepness are NOT w_self-independent
+  -- old shows this clearly and (mostly) monotonically**: the point where
+  the effect first becomes large/significant (d>1, p<0.01) shifts
+  progressively earlier as w_self increases -- around x1.9 for w_self=1.2
+  (only reaches d=+1.70, p=0.004, at x1.7; weaker/later overall), x1.7 for
+  w_self=1.5 (d=+5.07) and w_self=2.0 (d=+2.11), and as early as x1.5 for
+  w_self=2.5 (d=+1.57, p=0.007). Young shows the same qualitative shape at
+  every w_self but a noisier, less monotonic onset location (full-scale
+  CI would be needed to pin this down more precisely at n=8/group).
+- At the lowest tested w_self (1.2), the effect is both delayed and
+  visibly blunted in BOTH ages compared to higher w_self -- the kappa
+  curve stays closer to flat for longer and the final rise is smaller in
+  magnitude (young never reaches significance anywhere in the x0.5-2.3
+  range swept; old's largest d, +4.04 at x1.9, is still smaller than the
+  d=+5-7 seen at w_self=1.5/2.5 at their own steepest points).
+
+**Honest takeaway**: the explosive high-total-inhibition regime is a real,
+qualitative prediction of this circuit's winner-take-all structure --
+it's not something that only shows up because of one specific, arbitrary
+choice of `w_self`. But the PRECISE multiplier at which it kicks in (e.g.
+"around x1.5 in young") is NOT a `w_self`-independent number -- it moves
+with this still-ASSUMED, not-empirically-anchored parameter, and a larger
+real `w_self` would make the circuit tip into runaway perseveration at a
+smaller inhibition increase than a smaller one would. Any claim about the
+exact location of this threshold should be treated as contingent on
+`w_self`, while the existence/direction of the effect (more total
+inhibition eventually causes severe perseveration in both ages) looks
+model-robust.
+
 ## What's still an open assumption
 
 See `sst_pv_model/params.py::ASSUMED_PARAMETERS` for the full list
