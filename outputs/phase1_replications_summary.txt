@@ -1,19 +1,19 @@
-Phase 1 replication study: 12 independent cohorts, n_animals=16/group (matches your real 12-16/group range)
+Phase 1 replication study: 15 independent cohorts, n_animals=16/group (matches your real 12-16/group range)
 
 --- all sessions ---
-  mean Cohen's d: +0.243 (median +0.241, range [-0.254, +0.799])
-  fraction of replications with young>old direction: 0.67 (8/12)
-  fraction reaching one-sided p<0.05 individually: 0.17 (2/12)
-  Fisher's-method combined one-sided p-value across all 12 replications: 1.90e-02
+  mean Cohen's d: +0.949 (median +0.891, range [+0.547, +1.300])
+  fraction of replications with young>old direction: 1.00 (15/15)
+  fraction reaching one-sided p<0.05 individually: 0.93 (14/15)
+  Fisher's-method combined one-sided p-value across all 15 replications: 3.99e-19
 
 --- early sessions ---
-  mean Cohen's d: +0.287 (median +0.328, range [-0.226, +0.584])
-  fraction of replications with young>old direction: 0.92 (11/12)
-  fraction reaching one-sided p<0.05 individually: 0.00 (0/12)
-  Fisher's-method combined one-sided p-value across all 12 replications: 1.93e-02
+  mean Cohen's d: +0.793 (median +0.765, range [+0.258, +1.304])
+  fraction of replications with young>old direction: 1.00 (15/15)
+  fraction reaching one-sided p<0.05 individually: 0.87 (13/15)
+  Fisher's-method combined one-sided p-value across all 15 replications: 6.58e-14
 
 --- late sessions ---
-  mean Cohen's d: +0.049 (median -0.077, range [-0.635, +0.797])
-  fraction of replications with young>old direction: 0.50 (6/12)
-  fraction reaching one-sided p<0.05 individually: 0.17 (2/12)
-  Fisher's-method combined one-sided p-value across all 12 replications: 7.30e-02
+  mean Cohen's d: +0.569 (median +0.492, range [+0.114, +1.446])
+  fraction of replications with young>old direction: 1.00 (15/15)
+  fraction reaching one-sided p<0.05 individually: 0.33 (5/15)
+  Fisher's-method combined one-sided p-value across all 15 replications: 1.44e-08

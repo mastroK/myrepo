@@ -6,6 +6,94 @@ Raw outputs: `phase1_session_fits_{young,old}.csv`,
 `phase1_kappa_comparison.csv`, `phase1_kappa_by_age.png`,
 `phase1_robustness_report.txt`, `phase1_sweep_*.csv`.
 
+## REOPENED (2026-11-06/07): SST->PV coupling added -- result substantially strengthened, not overturned
+
+New finding reported for this reopening: the SST->PV IPSC's own kinetics
+change with age -- the first ~50ms is age-invariant, but the longer/
+sustained component of the evoked charge grows with age (confirmed point
+estimates, average at midpoint stimulation: 0.25 in young -> 0.75 in old,
+a ~3x change; max evoked charge unchanged, this is a kinetic/shape change).
+This adds a previously-unmodeled pathway -- the model explicitly had NO
+direct PV<->SST coupling in either direction before this. See
+`sst_pv_model/params.py::SST_TO_PV_GAIN_YOUNG/OLD` and
+`sst_pv_model/network.py` (new `s_sst_pv` state, `_pv_cross_net`) for the
+full implementation, including two false starts documented in commit
+history: an absolute-subtraction version that destabilized the circuit
+(the recurrent self-excitation, w_self=2.0, overran the losing pool once
+PV's divisive gain was eroded too far), and reusing the existing s_sst
+state directly (rejected because s_sst is already ~78% built up by the
+end of a 150ms stimulus epoch, which would have made the age-difference
+appear immediately rather than after the reported ~50ms). The shipped
+version uses a dedicated, slower state variable and a FRACTIONAL (not
+absolute) discount on PV's cross-pool divisive reach.
+
+**Before committing to the full-scale rerun, an isolated single-trial
+mechanism probe (forced extreme win -> one ITI, no noise, no learning)
+suggested the core mechanism might REVERSE at these confirmed values --
+old's residual asymmetry went negative. That turned out to be a
+misleading signal from an artificial probe, not a preview of the real
+result** -- flagged here explicitly since it was reported to the user
+as an open concern before the full pipeline was rerun.
+
+### Headline result, before vs. after (single real-scale cohort, n=16/group)
+
+| window | Cohen's d (before) | Cohen's d (after) | p after (t-test / MWU) |
+|---|---|---|---|
+| All sessions | +0.42 (n.s.) | **+0.87** | **0.020 / 0.048** |
+| Early (0-4) | +0.21 (n.s.) | +0.54 | 0.136 / 0.207 (n.s.) |
+| Late (5-9) | +0.46 (n.s.) | **+0.84** | **0.025 / 0.028** |
+
+The direction did not reverse -- it roughly doubled in magnitude, and the
+all-sessions and late-sessions windows are now individually significant
+at a single cohort, which the pre-reopening model never achieved without
+pooling 12 replications.
+
+### Robustness sweep, before vs. after
+
+Direction (young>old kappa) survival rate is unchanged or improved:
+tau_PV 5/5 -> 5/5, tau_SST 5/5 -> 5/5, w_self 4/4 -> 4/4, noise_sigma
+2/4 -> **3/4**. The new coupling does not make the result more fragile to
+these four parameters.
+
+### Replication/power study, before vs. after (now 15 independent cohorts, not 12)
+
+| window | mean d (before, n=12) | mean d (after, n=15) | % correct direction (before -> after) | individually sig. (after) | Fisher's p (before -> after) |
+|---|---|---|---|---|---|
+| All sessions | +0.24 | **+0.95** | 67% -> **100%** | 14/15 (93%) | 0.019 -> **3.99e-19** |
+| Early (0-4) | +0.29 | **+0.79** | 92% -> **100%** | 13/15 (87%) | 0.019 -> **6.58e-14** |
+| Late (5-9) | +0.05 | **+0.57** | 50% -> **100%** | 5/15 (33%) | 0.073 (n.s.) -> **1.44e-08** |
+
+**The late-session pattern from the original retraction (see below)
+qualitatively persists even after this reopening**: late sessions still
+have the lowest mean effect size and by far the lowest individual-
+replication hit rate (33% vs. 93%/87%) of the three windows -- it is
+still the least consistent window on a per-replication basis. What
+changed is magnitude: the underlying effect is now large enough that even
+the "weakest" window's *pooled* evidence is overwhelming. This does not
+revive the originally-retracted late-session-specific claim (see
+"Replication/power study" section below) -- early sessions are still
+comparatively the more consistent window, just by less of a margin than
+before.
+
+### What this means
+
+Treat the original "Headline result," "Robustness," and "Replication"
+sections below as the **pre-reopening historical record** -- accurate for
+the model as it stood before this new SST->PV finding, superseded (not
+reversed) by the numbers above. The qualitative conclusion is the same
+sufficiency claim as before, now on much firmer statistical ground; the
+retraction of the late-session-specific claim (below) still stands on its
+own terms and is not reopened by this update.
+
+An open question raised during this reopening and not yet resolved: why
+the isolated single-trial mechanism probe disagrees with the full
+noisy/learning-coupled simulation at these parameter values. Worth
+understanding before leaning on the isolated probe for future exploratory
+predictions (see the per-manipulation exploration run this session,
+scratch-only, not yet committed to the repo).
+
+---
+
 **This version uses real SST/PV fold-changes**, read off the saturating
 plateau (~15 mW) of your SST-Cre;Ai32 / PV-Cre;Ai32 ChR2 charge (fC/pF)
 dose-response curves: SST fold-change (old/young) ~0.73, PV fold-change
@@ -16,7 +104,7 @@ the first pass (0.5 / 2.0), which matters for what follows: the model's
 effect size shrinks with the real, smaller inhibitory contrast between
 ages. See `sst_pv_model/params.py` for the full derivation and caveats.
 
-## Headline result
+## Headline result (PRE-REOPENING HISTORICAL RECORD -- see REOPENED section above for current numbers)
 
 | | young (animal-mean kappa) | old (animal-mean kappa) |
 |---|---|---|
@@ -43,7 +131,7 @@ ages. See `sst_pv_model/params.py` for the full derivation and caveats.
   ~30%), unchanged from the placeholder run (this is governed by
   `noise_sigma`, not the fold-changes).
 
-## Robustness / sensitivity sweep (Phase 1 step 5) -- weaker than before
+## Robustness / sensitivity sweep (Phase 1 step 5) -- weaker than before (PRE-REOPENING HISTORICAL RECORD)
 
 One-at-a-time sweeps around baseline, reduced trial count for speed:
 
@@ -70,7 +158,7 @@ simulated cohort (more animals/sessions) is the direct next step -- the
 direction is not in question, the *power to detect it* at this real,
 modest effect size is.
 
-## Replication/power study -- and a correction to the late-session claim above
+## Replication/power study -- and a correction to the late-session claim above (PRE-REOPENING HISTORICAL RECORD; the retraction itself still stands)
 
 `python scripts/run_phase1_replications.py` (12 independent cohorts, each
 n_animals=16/group -- your real cohort size, not an inflated one -- 10
@@ -116,14 +204,30 @@ Full output: `phase1_replications_raw.csv`, `phase1_replications_summary.txt`,
   specific. That would need an explicit session/experience-dependent
   mechanism this model doesn't have.
 
-## Mechanism check (regression-tested)
+## Mechanism check (regression-tested) -- REVISED 2026-11-07
 
-Verified directly (not just via the downstream behavioral fit): after an
-identical "win" for one pool, followed by the same inter-trial-interval,
-the young network retains more residual winner/loser output asymmetry
-than the old network (`tests/test_network.py`). No stickiness term exists
-anywhere in the circuit equations -- the entire kappa effect is a
-downstream consequence of this differential reset.
+Pre-reopening: after an identical "win" for one pool, followed by the same
+inter-trial-interval, the young network retained more residual winner/
+loser output asymmetry than the old network, with old's own asymmetry
+staying positive (just smaller) -- a weaker version of the same effect.
+
+**That no longer holds at the confirmed SST->PV coupling values.** Old's
+residual asymmetry in this isolated probe is now NEGATIVE (the pool that
+just lost ends up with higher output than the pool that just won) --
+see `tests/test_network.py::test_young_retains_more_residual_asymmetry_than_old`,
+updated to assert this directly. Young's result is unchanged.
+
+**This isolated probe's reversal does NOT reflect what happens in the
+full task** -- see the REOPENED section at the top: the actual behavioral
+kappa effect got stronger, not weaker or reversed, once simulated with
+realistic noise and trial-to-trial value learning. The isolated probe
+(a single forced extreme win, no noise, no learning, full ITI relaxation)
+is evidently not a reliable stand-in for the full multi-trial dynamics at
+these parameter values -- why, specifically, is not yet understood and is
+flagged as an open question, not resolved by picking a reassuring
+explanation. Treat the isolated mechanism probe as a diagnostic for
+circuit behavior under extreme conditions, not as a predictor of the
+behavioral readout, until this discrepancy is understood.
 
 ## What's still an open assumption
 
