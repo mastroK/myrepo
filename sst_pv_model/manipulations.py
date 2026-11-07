@@ -31,12 +31,23 @@ are already covered by the existing robustness sweep
 from dataclasses import replace
 
 
+def scale_total_inhibition(p, multiplier):
+    """Scale all three inhibitory gains (g_pv, g_sst, g_sst_to_pv) together
+    by an arbitrary multiplier relative to whichever baseline `p` already
+    is. Generalizes _lower_total/_higher_total (multiplier=0.5/1.5) to any
+    value, for sweeping the "total inhibition" axis continuously rather
+    than at only two fixed points -- see scripts/run_total_inhibition_sweep.py.
+    """
+    return replace(p, g_pv=p.g_pv * multiplier, g_sst=p.g_sst * multiplier,
+                    g_sst_to_pv=p.g_sst_to_pv * multiplier)
+
+
 def _lower_total(p):
-    return replace(p, g_pv=p.g_pv * 0.5, g_sst=p.g_sst * 0.5, g_sst_to_pv=p.g_sst_to_pv * 0.5)
+    return scale_total_inhibition(p, 0.5)
 
 
 def _higher_total(p):
-    return replace(p, g_pv=p.g_pv * 1.5, g_sst=p.g_sst * 1.5, g_sst_to_pv=p.g_sst_to_pv * 1.5)
+    return scale_total_inhibition(p, 1.5)
 
 
 def _lower_pv_only(p):

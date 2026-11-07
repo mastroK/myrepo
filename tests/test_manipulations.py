@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from sst_pv_model.params import scaled_params
-from sst_pv_model.manipulations import MANIPULATIONS, apply_manipulation
+from sst_pv_model.manipulations import MANIPULATIONS, apply_manipulation, scale_total_inhibition
 
 
 def test_lower_total_inhibition_halves_all_three_gains():
@@ -56,3 +56,18 @@ def test_all_manipulations_are_registered_and_applicable():
     for name in MANIPULATIONS:
         manip = apply_manipulation(base, name)
         assert manip.g_pv > 0 and manip.g_sst > 0 and manip.g_sst_to_pv >= 0
+
+
+def test_scale_total_inhibition_scales_all_three_gains_by_arbitrary_multiplier():
+    base = scaled_params("old")
+    for m in [0.2, 0.7, 1.0, 1.3, 2.2]:
+        manip = scale_total_inhibition(base, m)
+        assert manip.g_pv == base.g_pv * m
+        assert manip.g_sst == base.g_sst * m
+        assert manip.g_sst_to_pv == base.g_sst_to_pv * m
+
+
+def test_lower_and_higher_total_are_special_cases_of_scale_total_inhibition():
+    base = scaled_params("young")
+    assert apply_manipulation(base, "lower_total_inhibition") == scale_total_inhibition(base, 0.5)
+    assert apply_manipulation(base, "higher_total_inhibition") == scale_total_inhibition(base, 1.5)
