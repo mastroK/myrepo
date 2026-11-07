@@ -284,6 +284,66 @@ exploratory runs at reduced scale are not a reliable guide to this
 model's predictions; several directional claims drawn from one this
 session did not survive being run properly.
 
+## Finer sweep around each age's baseline (reduced scale, 2026-11-07)
+
+`python scripts/run_total_inhibition_sweep.py` (`sst_pv_model/manipulations.py::scale_total_inhibition`)
+-- the two significant full-scale results above were each measured at a
+single multiplier point (x0.5 or x1.5 of baseline gain). This asks the
+natural follow-up: is each age's own baseline sitting at a true local
+minimum of perseveration, with kappa rising smoothly and symmetrically in
+both directions (a U-shape), or is there something sharper going on?
+Swept 17 multiplier values (x0.2-x2.2) of total inhibition (g_pv, g_sst,
+g_sst_to_pv scaled together) around each age's own baseline, at the
+project's established reduced/sensitivity scale (n=8/group, 3 sessions x
+100 trials, 8 fit restarts -- shape-mapping, not a confirmatory rerun).
+Full output: `outputs/phase1_total_inhibition_sweep.csv`,
+`outputs/phase1_total_inhibition_sweep.png`.
+
+**Answer: neither a smooth symmetric U-shape nor a single clean threshold
+-- the two directions look qualitatively different, and in both ages:**
+
+- **x0.2-x1.4 (lower-to-moderately-higher inhibition):** kappa is flat and
+  noisy around the baseline level, bouncing within roughly +/-0.4 kappa
+  with no significant difference from baseline at ANY single point in this
+  reduced-n sweep (best: old x0.3, d=+0.89, p=0.098, n.s.). This is
+  consistent with the full-scale finding for old (lower total inhibition,
+  d=+1.20, p=0.002) being a real but modest effect that needs the full
+  n=16/group cohort to resolve point-by-point -- it is not dramatic enough
+  to show up cleanly at n=8 at any single multiplier.
+- There is a shallow, non-significant DIP (lowest kappa of the whole
+  sweep) around **x1.2-1.3** in BOTH ages, i.e. slightly past each
+  baseline toward more inhibition, not exactly at x1.0 -- but this is
+  well within noise (d=-0.41 to -0.76, p=0.15-0.44) and should not be
+  over-interpreted as a precise "true minimum" location without more
+  animals.
+- **Above roughly x1.4-1.5, kappa rises sharply and increasingly
+  significantly in BOTH ages** -- not a gentle slope: d climbs from
+  ~0.1-0.4 (n.s.) at x1.4-1.5 to d=+1.48 (p=0.01) at x1.7, d=+2.46
+  (p=0.0002) at x2.0, and d=+2.90 (p<0.0001) at x2.2 in young; old shows
+  the same pattern (d=+1.74 at x1.7, p=0.0037; d=+4.16 at x2.0,
+  p<0.0001). Absolute kappa jumps from the -0.2 to -0.4 range at baseline
+  to +1.1 to +2.7 by x2.0-2.2 -- a qualitative change in behavior
+  (near-total perseveration), not a small shift.
+
+**Interpretation**: the full-scale young result (higher total inhibition,
+x1.5, d=+2.07) sits right at the edge of this steep high-inhibition
+regime, which is consistent with how large and clean that effect was even
+at a single cohort. The shape above x1.4 looks less like ordinary
+parameter sensitivity and more like a shared (age-independent) dynamical
+threshold -- plausibly the same runaway winner-take-all regime flagged
+during model construction (`w_self=2.0` recurrent self-excitation
+overrunning the losing pool once cross-inhibition is strong enough; see
+`network.py` module docstring on the rejected absolute-subtraction
+SST->PV implementation). The low-inhibition side, by contrast, shows no
+such sharp feature in either age within the range swept -- whatever is
+driving old's real lower-total-inhibition effect, it is a gentler, noisier
+effect than the explosive high-inhibition transition, not its mirror
+image. **Open question, not resolved here**: whether this high-inhibition
+threshold is a genuine model prediction about circuit dynamics or an
+artifact of `w_self` being an ASSUMED (not empirically-anchored) free
+parameter -- worth a `w_self` cross-sweep before treating the x1.7-2.2
+regime as biologically meaningful.
+
 ## What's still an open assumption
 
 See `sst_pv_model/params.py::ASSUMED_PARAMETERS` for the full list
