@@ -229,6 +229,61 @@ explanation. Treat the isolated mechanism probe as a diagnostic for
 circuit behavior under extreme conditions, not as a predictor of the
 behavioral readout, until this discrepancy is understood.
 
+## Inhibition-manipulation predictions (full scale, formalized 2026-11-07)
+
+`python scripts/run_manipulations.py` (`sst_pv_model/manipulations.py`,
+`tests/test_manipulations.py`) -- four named circuit-wide manipulations
+(lower/higher total inhibition = g_pv, g_sst, g_sst_to_pv all scaled
+together; PV-only; SST-only = both of SST's output pathways scaled
+together), applied on top of each age's own baseline, at full scale (10
+sessions x 150 trials x 16/group, 15 fit restarts, matching the headline
+convention). Single cohort per scenario -- not replicated the way the
+headline young-vs-old result is. Full output: `outputs/phase1_manipulations.csv`.
+
+| Age | Manipulation | kappa (baseline -> manip) | diff | Cohen's d | p (t / MWU) |
+|---|---|---|---|---|---|
+| Young | Lower total inhibition | -0.208 -> -0.194 | +0.014 | +0.06 | 0.859 / 0.807 (n.s.) |
+| Young | **Higher total inhibition** | -0.208 -> **+0.350** | **+0.558** | **+2.07** | **<0.0001 / <0.0001** |
+| Young | Lower PV only | -0.208 -> -0.128 | +0.080 | +0.35 | 0.337 / 0.356 (n.s.) |
+| Young | Lower SST only | -0.208 -> -0.133 | +0.075 | +0.33 | 0.359 / 0.440 (n.s.) |
+| Old | **Lower total inhibition** | -0.352 -> **-0.101** | **+0.252** | **+1.20** | **0.002 / 0.001** |
+| Old | Higher total inhibition | -0.352 -> -0.381 | -0.028 | -0.23 | 0.527 / 0.955 (n.s.) |
+| Old | Lower PV only | -0.352 -> -0.328 | +0.025 | +0.11 | 0.752 / 0.806 (n.s.) |
+| Old | Lower SST only | -0.352 -> -0.212 | +0.140 | +0.67 | 0.066 / 0.080 (trend) |
+
+**Only 2 of 8 scenarios survive at full scale** -- and they are not the
+same two a quick, reduced-scale (n=10, single seed) exploration had
+suggested earlier the same day. **Corrections to that earlier exploration,
+stated plainly:**
+
+- "Higher total inhibition flips sign between ages" -- **partially wrong**.
+  Young's increase is real and enormous (d=+2.07, about as bulletproof as
+  an effect gets at this cohort size). Old's earlier-reported large
+  *decrease* shrinks to a small, non-significant effect at full scale
+  (d=-0.23) -- not a true sign flip, just "huge in young, negligible in
+  old."
+- "Lower total inhibition behaves similarly in both ages" -- **wrong**.
+  This is actually the most age-asymmetric manipulation at full scale:
+  null in young (d=+0.06, n.s.) but large and significant in old
+  (d=+1.20, p=0.002).
+- "SST alone is the single largest effect in young" -- **does not
+  replicate**. Full-scale d=+0.33 (n.s.), much smaller than the reduced-
+  scale exploration suggested; that earlier result was single-seed noise.
+- "Lower PV matters in old" -- **does not replicate** (full-scale d=+0.11,
+  n.s.).
+- "PV alone barely matters in young" -- holds up directionally (small,
+  non-significant either way), the one claim that survived.
+
+**Honest takeaway**: at proper statistical power, this model makes two
+clear, specific predictions -- raising total inhibition in a young-like
+circuit sharply increases perseveration, and lowering total inhibition in
+an old-like circuit sharply increases perseveration -- and is silent
+(no significant prediction either way) on the other six scenarios tested,
+including both PV-only and most SST-only manipulations. Single-seed
+exploratory runs at reduced scale are not a reliable guide to this
+model's predictions; several directional claims drawn from one this
+session did not survive being run properly.
+
 ## What's still an open assumption
 
 See `sst_pv_model/params.py::ASSUMED_PARAMETERS` for the full list
