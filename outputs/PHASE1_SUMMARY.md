@@ -322,6 +322,55 @@ exploratory runs at reduced scale are not a reliable guide to this
 model's predictions; several directional claims drawn from one this
 session did not survive being run properly.
 
+## Full-scale confirmatory replication of the significant manipulations (2026-11-08)
+
+`python scripts/run_manipulation_replications.py --age <age> --manipulation <name>`
+-- the two scenarios that survived the single-cohort full-scale check above
+(young/higher_total_inhibition, old/lower_total_inhibition) were each
+replicated across many independent full-scale cohorts (TaskParams()
+defaults: 10 sessions x 150 trials, n_animals=16/group, n_starts=8 --
+exactly mirroring `scripts/run_phase1_replications.py`'s established
+convention for the headline young-vs-old result), with Hedges' SE and an
+inverse-variance-weighted pooled estimate computed the same way as that
+headline forest plot. Full output:
+`outputs/phase1_manip_replications_{young_higher_total_inhibition,old_lower_total_inhibition}_{raw.csv,summary.txt,forest.png}`.
+
+Planned for 15 replications each, run as two parallel background jobs;
+both were stopped by the sandbox's 2-hour background-compute ceiling
+(already the maximum allowed) after completing **13 of 15** -- running
+both scenarios concurrently took noticeably longer per replication than a
+single-scenario timing estimate had suggested (most likely CPU/BLAS
+contention between the two processes sharing 4 cores). 13 independent
+full-scale cohorts is still a substantial sample, and the result is
+reported as-is rather than padded with a partial 14th/15th cohort.
+
+| Scenario | Reps | Mean d (range) | Direction | Individually sig. | Fisher's combined p | Pooled d (95% CI) |
+|---|---|---|---|---|---|---|
+| Young, higher total inhibition | 13/15 | +2.55 (+1.91 to +3.57) | 13/13 | 13/13 | 2.3e-79 | **+2.49 [+2.23, +2.76]** |
+| Old, lower total inhibition | 13/15 | +1.00 (+0.49 to +2.03) | 13/13 | 11/13 | 4.6e-19 | **+0.96 [+0.75, +1.16]** |
+
+**Both replicate convincingly, at very different magnitudes.** Young's
+higher-total-inhibition effect is not just significant but enormous and
+remarkably consistent -- every single one of 13 independent cohorts landed
+in a tight d=1.9-3.6 band, none anywhere close to the null. Old's
+lower-total-inhibition effect is real and highly significant in aggregate
+(pooled d=0.96, CI excludes zero by a wide margin) but visibly noisier
+cohort-to-cohort (2 of 13 individual cohorts, reps 9-10, didn't reach
+p<0.05 on their own, d=0.49/0.53) -- consistent with this being the
+smaller, harder-to-resolve-at-n=8 effect already flagged in the finer
+sweep below (where no single reduced-scale sweep point for old's
+low-inhibition side reached significance; it took the full n=16/group,
+multi-replication treatment to nail down).
+
+**Bottom line**: both of the two circuit-wide manipulation predictions
+that survived the single-cohort full-scale screen hold up under proper
+replication. This is now the model's most statistically solid pair of
+causal, testable predictions: pharmacologically/optogenetically raising
+total inhibition in a young-like circuit should produce a large, highly
+reliable increase in perseveration; lowering total inhibition in an
+old-like circuit should also increase perseveration, reliably but more
+modestly.
+
 ## Finer sweep around each age's baseline (reduced scale, 2026-11-07)
 
 `python scripts/run_total_inhibition_sweep.py` (`sst_pv_model/manipulations.py::scale_total_inhibition`)

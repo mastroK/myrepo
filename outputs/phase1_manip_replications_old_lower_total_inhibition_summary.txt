@@ -1,0 +1,11 @@
+Manipulation replication study: old / lower_total_inhibition
+13 independent full-scale cohorts completed (stopped at the 2-hour background compute limit, 13/15 planned replications -- see note below), n_animals=16/group, 10 sessions x 150 trials, n_starts=8
+
+mean Cohen's d: +0.998 (median +1.078, range [+0.486, +2.033])
+fraction of replications with manip>baseline direction: 1.00 (13/13)
+fraction reaching one-sided p<0.05 individually: 0.85 (11/13)
+Fisher's-method combined one-sided p-value across all 13 replications: 4.63e-19
+Pooled inverse-variance-weighted estimate: d = 0.956, 95% CI [0.751, 1.161]
+
+NOTE: planned for 15 replications (matching the headline young-vs-old replication study's convention); both this and the other scenario's background jobs were stopped by the sandbox's 2-hour background-task limit (already the maximum allowed) after completing 13/15 -- the parallel run of both scenarios together ran slower per-replication than the earlier single-comparison timing estimate, apparently from CPU/BLAS contention between the two concurrent processes. 13 independent full-scale cohorts is still a substantial, informative sample --
+this result is reported as-is rather than padded with a partial 14th/15th cohort.
