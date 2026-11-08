@@ -229,6 +229,44 @@ explanation. Treat the isolated mechanism probe as a diagnostic for
 circuit behavior under extreme conditions, not as a predictor of the
 behavioral readout, until this discrepancy is understood.
 
+**Extension (2026-11-08): the probe-vs-behavior gap is not limited to one
+parameter setting.** `python scripts/run_mechanism_probe_w_self_sweep.py`
+reran this same probe across the full (w_self, age, total-inhibition
+multiplier) grid from the `w_self` cross-sweep above (deterministic, no
+fitting needed, so run at every grid point rather than a sample). Full
+output: `outputs/phase1_mechanism_probe_w_self_sweep.csv`,
+`outputs/phase1_mechanism_vs_behavior_w_self_sweep.csv` (merged with the
+behavioral results), `outputs/phase1_mechanism_vs_behavior_w_self_sweep.png`.
+
+- **Young**: the probe rises smoothly and monotonically with the
+  inhibition multiplier at every w_self (from ~0 at x0.5 to 0.15-0.52 at
+  x2.3, steeper at higher w_self) -- it shows NO sharp transition anywhere
+  in the swept range, in clear contrast to the behavioral kappa curve's
+  late explosive jump above roughly x1.7-1.9. The probe is directionally
+  right (both go up) but structurally wrong (smooth vs. threshold).
+- **Old**: the probe does something actively misleading for most of the
+  range -- it goes slightly NEGATIVE and gets progressively MORE negative
+  as the multiplier rises from ~1.0 to ~2.1 (most clearly at w_self=2.0
+  and 2.5, e.g. w_self=2.5: -0.03 at x1.3 down to -0.27 at x2.1), even as
+  behavioral kappa is already climbing sharply through that same range
+  (e.g. w_self=2.5, old: kappa already at +1.42 by x1.7 while the probe is
+  at -0.09 and falling). The probe only flips sharply positive at the very
+  last point or two of the sweep (x2.1-2.3), well after the behavioral
+  threshold has already been crossed.
+
+**Conclusion**: the isolated single-trial probe is not merely "a bit off"
+at one specific coupling value -- across this whole grid it systematically
+fails to anticipate the behavioral high-inhibition threshold (too smooth
+in young, actively opposite in sign for most of the range in old). This
+strengthens the standing recommendation to treat the probe strictly as an
+extreme-condition circuit diagnostic, not as a stand-in for the real
+multi-trial, noisy, learning-coupled simulation, for manipulations as well
+as for the original age comparison. The mechanistic reason for the gap
+(most likely: the probe's single forced-win trial never samples the
+accumulated, noise-driven value trajectory across a session that actually
+drives the Q-learning fit's kappa) remains an open question, not resolved
+here.
+
 ## Inhibition-manipulation predictions (full scale, formalized 2026-11-07)
 
 `python scripts/run_manipulations.py` (`sst_pv_model/manipulations.py`,
