@@ -1,0 +1,8 @@
+Manipulation replication study: young / higher_total_inhibition
+3 independent full-scale cohorts, n_animals=16/group, 3 sessions x 80 trials, n_starts=5
+
+mean Cohen's d: +0.355 (median +0.300, range [+0.252, +0.513])
+fraction of replications with manip>baseline direction: 1.00 (3/3)
+fraction reaching one-sided p<0.05 individually: 0.00 (0/3)
+Fisher's-method combined one-sided p-value across all 3 replications: 8.42e-02
+Pooled inverse-variance-weighted estimate: d = 0.354, 95% CI [-0.050, 0.757]
